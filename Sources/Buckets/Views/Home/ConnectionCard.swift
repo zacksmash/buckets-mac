@@ -1,0 +1,189 @@
+import SwiftUI
+
+struct ConnectionCard: View {
+    let connection: Connection
+    let onOpen: () -> Void
+    let onOpenInNewWindow: () -> Void
+    let onEdit: () -> Void
+    let onDuplicate: () -> Void
+    let onDelete: () -> Void
+
+    @State private var isHovering = false
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top) {
+                ConnectionIcon(connection: connection, size: 48)
+                Spacer()
+            }
+
+            Spacer(minLength: 16)
+
+            Text(connection.displayName)
+                .font(.system(size: 15, weight: .semibold))
+                .lineLimit(1)
+
+            HStack(spacing: 5) {
+                Image(systemName: "shippingbox")
+                    .font(.system(size: 10, weight: .semibold))
+                Text(connection.bucket)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .font(.system(size: 12))
+            .foregroundStyle(.secondary)
+            .padding(.top, 3)
+
+            Divider()
+                .padding(.vertical, 12)
+
+            HStack(spacing: 6) {
+                ProviderBadge(provider: connection.provider)
+                Text(connection.provider == .cloudflareR2 ? jurisdictionLabel : connection.hostDescription)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer(minLength: 4)
+                Text(lastOpenedLabel)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(16)
+        .frame(height: 178)
+        .background {
+            ZStack {
+                shape.fill(Color(nsColor: .controlBackgroundColor))
+                shape.fill(
+                    LinearGradient(
+                        colors: [connection.tint.color.opacity(isHovering ? 0.16 : 0.09), .clear],
+                        startPoint: .topLeading,
+                        endPoint: UnitPoint(x: 0.7, y: 0.65)
+                    )
+                )
+            }
+        }
+        .overlay {
+            shape.strokeBorder(
+                isHovering ? connection.tint.color.opacity(0.45) : Color.primary.opacity(colorScheme == .dark ? 0.12 : 0.08),
+                lineWidth: isHovering ? 1 : 0.5
+            )
+        }
+        .overlay(alignment: .topTrailing) {
+            Menu {
+                menuContent
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 26, height: 26)
+                    .background(.quaternary.opacity(0.6), in: Circle())
+                    .contentShape(Circle())
+            }
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .padding(12)
+            .opacity(isHovering ? 1 : 0)
+            .help("More Actions")
+        }
+        .shadow(color: .black.opacity(isHovering ? 0.12 : 0.05), radius: isHovering ? 16 : 4, y: isHovering ? 8 : 2)
+        .scaleEffect(isHovering ? 1.012 : 1)
+        .contentShape(shape)
+        .onTapGesture(perform: onOpen)
+        .onHover { hovering in
+            withAnimation(.snappy(duration: 0.2)) { isHovering = hovering }
+        }
+        .contextMenu { menuContent }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel("\(connection.displayName), bucket \(connection.bucket)")
+        .accessibilityAction(named: "Open", onOpen)
+    }
+
+    @ViewBuilder private var menuContent: some View {
+        Button("Open", action: onOpen)
+        Button("Open in New Window", action: onOpenInNewWindow)
+        Divider()
+        Button("Edit Connection…", action: onEdit)
+        Button("Duplicate", action: onDuplicate)
+        Divider()
+        Button("Delete…", role: .destructive, action: onDelete)
+    }
+
+    private var jurisdictionLabel: String {
+        connection.jurisdiction == .automatic ? connection.hostDescription : connection.jurisdiction.displayName
+    }
+
+    private var lastOpenedLabel: String {
+        guard let date = connection.lastOpenedAt else { return "Never opened" }
+        return Format.relative(date).capitalizedFirst
+    }
+}
+
+private extension String {
+    var capitalizedFirst: String { prefix(1).uppercased() + dropFirst() }
+}
+
+struct ProviderBadge: View {
+    let provider: StorageProvider
+
+    var body: some View {
+        Text(provider.shortName)
+            .font(.system(size: 10, weight: .bold, design: .rounded))
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(.quaternary.opacity(0.7), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+    }
+}
+
+struct AddConnectionCard: View {
+    let action: () -> Void
+    @State private var isHovering = false
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        VStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(Color.accentColor.opacity(isHovering ? 0.18 : 0.1))
+                    .frame(width: 48, height: 48)
+                Image(systemName: "plus")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+            }
+            VStack(spacing: 2) {
+                Text("New Connection")
+                    .font(.system(size: 14, weight: .semibold))
+                Text("Cloudflare R2 or any S3‑compatible service")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 178)
+        .background(shape.fill(Color.accentColor.opacity(isHovering ? 0.05 : 0)))
+        .overlay {
+            shape.strokeBorder(
+                isHovering ? Color.accentColor.opacity(0.6) : Color.secondary.opacity(0.35),
+                style: StrokeStyle(lineWidth: 1.5, dash: [6, 5])
+            )
+        }
+        .contentShape(shape)
+        .onTapGesture(perform: action)
+        .onHover { hovering in
+            withAnimation(.snappy(duration: 0.2)) { isHovering = hovering }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction(named: "New Connection", action)
+    }
+}
