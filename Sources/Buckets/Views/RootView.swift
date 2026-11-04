@@ -6,7 +6,9 @@ struct RootView: View {
     @State private var activeID: UUID?
 
     init(initialConnectionID: UUID? = nil) {
-        _activeID = State(initialValue: initialConnectionID)
+        // Debug aid for screenshots: `open Buckets.app --args -OpenConnection <uuid>`
+        let launchID = UserDefaults.standard.string(forKey: "OpenConnection").flatMap(UUID.init(uuidString:))
+        _activeID = State(initialValue: initialConnectionID ?? launchID)
     }
 
     var body: some View {

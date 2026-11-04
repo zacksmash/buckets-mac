@@ -59,8 +59,12 @@ struct ConnectionsHomeView: View {
                 }
             }
         }
-        .searchable(text: $searchText, placement: .toolbar, prompt: "Search Connections")
+        .searchableWhen(!store.connections.isEmpty, text: $searchText, prompt: "Search Connections")
         .focusedSceneValue(\.newConnectionAction) { editorTarget = .new }
+        .onAppear {
+            // Debug aid for screenshots: `open Buckets.app --args -DemoPresentEditor YES`
+            if UserDefaults.standard.bool(forKey: "DemoPresentEditor") { editorTarget = .new }
+        }
         .sheet(item: $editorTarget) { target in
             ConnectionEditorView(connection: target.connection) { saved in
                 if target.connection == nil { onOpen(saved) }
@@ -156,5 +160,17 @@ struct HomeBackground: View {
             )
         }
         .ignoresSafeArea()
+    }
+}
+
+private extension View {
+    /// Shows the toolbar search field only when there is something to search.
+    @ViewBuilder
+    func searchableWhen(_ enabled: Bool, text: Binding<String>, prompt: String) -> some View {
+        if enabled {
+            searchable(text: text, placement: .toolbar, prompt: Text(prompt))
+        } else {
+            self
+        }
     }
 }

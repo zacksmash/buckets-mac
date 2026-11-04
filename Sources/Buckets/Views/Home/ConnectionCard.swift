@@ -44,11 +44,12 @@ struct ConnectionCard: View {
 
             HStack(spacing: 6) {
                 ProviderBadge(provider: connection.provider)
-                Text(connection.provider == .cloudflareR2 ? jurisdictionLabel : connection.hostDescription)
+                Text(locationLabel)
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
-                    .truncationMode(.middle)
+                    .truncationMode(.tail)
+                    .help(connection.hostDescription)
                 Spacer(minLength: 4)
                 Text(lastOpenedLabel)
                     .font(.system(size: 11))
@@ -60,7 +61,8 @@ struct ConnectionCard: View {
         .frame(height: 178)
         .background {
             ZStack {
-                shape.fill(Color(nsColor: .controlBackgroundColor))
+                // Cards sit slightly above the window: white in light mode, a lifted gray in dark mode.
+                shape.fill(colorScheme == .dark ? Color.white.opacity(isHovering ? 0.085 : 0.06) : Color(nsColor: .controlBackgroundColor))
                 shape.fill(
                     LinearGradient(
                         colors: [connection.tint.color.opacity(isHovering ? 0.16 : 0.09), .clear],
@@ -118,8 +120,14 @@ struct ConnectionCard: View {
         Button("Delete…", role: .destructive, action: onDelete)
     }
 
-    private var jurisdictionLabel: String {
-        connection.jurisdiction == .automatic ? connection.hostDescription : connection.jurisdiction.displayName
+    /// Short, readable location: "Cloudflare", "Cloudflare · EU", or the S3 host.
+    private var locationLabel: String {
+        switch connection.provider {
+        case .cloudflareR2:
+            return connection.jurisdiction == .automatic ? "Cloudflare" : "Cloudflare · \(connection.jurisdiction.displayName)"
+        case .s3Compatible:
+            return connection.hostDescription
+        }
     }
 
     private var lastOpenedLabel: String {
