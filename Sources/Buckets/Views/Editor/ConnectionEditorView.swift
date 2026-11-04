@@ -13,6 +13,8 @@ struct ConnectionEditorView: View {
     @State private var testState: TestState = .idle
     @State private var saveError: String?
     @State private var testTask: Task<Void, Never>?
+    @State private var showSymbolPicker = false
+    private let existingID: UUID?
     @FocusState private var focusedField: Field?
 
     enum Field: Hashable { case name, account, endpoint, region, bucket, accessKey, secret }
@@ -28,7 +30,8 @@ struct ConnectionEditorView: View {
         isNew = connection == nil
         self.onSaved = onSaved
         _draft = State(initialValue: connection ?? Connection())
-        _secret = State(initialValue: connection.flatMap { Keychain.secret(for: $0.id) } ?? "")
+        existingID = connection?.id
+        _secret = State(initialValue: "")
     }
 
     private var isValid: Bool {
@@ -143,80 +146,106 @@ struct ConnectionEditorView: View {
             footer
         }
         .frame(width: 540)
-        .frame(minHeight: 460, idealHeight: 680, maxHeight: 680)
+        .frame(minHeight: 460, idealHeight: 640, maxHeight: 660)
         .onAppear {
             focusedField = isNew ? .name : nil
         }
         .onDisappear { testTask?.cancel() }
+        .task {
+            // Read the Keychain off the main thread: it may show a system prompt.
+            guard let id = existingID, secret.isEmpty else { return }
+            let stored = await Task.detached(priority: .userInitiated) { Keychain.secret(for: id) }.value
+            if secret.isEmpty, let stored { secret = stored }
+        }
     }
 
     // MARK: - Identity
 
     private var identityHeader: some View {
-        VStack(spacing: 14) {
-            ConnectionIcon(tint: draft.tint, symbol: draft.symbol, size: 64)
-                .animation(.snappy, value: draft.tint)
-                .animation(.snappy, value: draft.symbol)
-                .padding(.top, 6)
-
-            TextField(
-                "Name",
-                text: $draft.name,
-                prompt: Text(draft.bucket.trimmed.isEmpty ? "Connection Name" : draft.bucket)
-            )
-            .labelsHidden()
-            .textFieldStyle(.plain)
-            .font(.system(size: 18, weight: .semibold))
-            .multilineTextAlignment(.center)
-            .padding(.vertical, 7)
-            .padding(.horizontal, 12)
-            .background(.quaternary.opacity(0.55), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-            .frame(maxWidth: 342)
-            .focused($focusedField, equals: .name)
-
-            HStack(spacing: 6) {
-                ForEach(ConnectionTint.allCases) { tint in
-                    Button {
-                        draft.tint = tint
-                    } label: {
-                        Circle()
-                            .fill(tint.gradient)
-                            .frame(width: 20, height: 20)
-                            .padding(3)
-                            .overlay {
-                                Circle()
-                                    .strokeBorder(Color.secondary.opacity(draft.tint == tint ? 0.55 : 0), lineWidth: 2)
-                            }
-                            .contentShape(Circle())
+        HStack(alignment: .center, spacing: 18) {
+            Button {
+                showSymbolPicker.toggle()
+            } label: {
+                ConnectionIcon(tint: draft.tint, symbol: draft.symbol, size: 64)
+                    .overlay(alignment: .bottomTrailing) {
+                        Image(systemName: "pencil.circle.fill")
+                            .font(.system(size: 20))
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(.white, Color(nsColor: .darkGray))
+                            .background(Circle().fill(Color(nsColor: .windowBackgroundColor)).padding(2))
+                            .offset(x: 5, y: 5)
                     }
-                    .buttonStyle(.plain)
-                    .help(tint.displayName)
-                    .accessibilityLabel(tint.displayName)
-                }
+                    .animation(.snappy, value: draft.tint)
+                    .animation(.snappy, value: draft.symbol)
+            }
+            .buttonStyle(.plain)
+            .help("Choose an Icon")
+            .accessibilityLabel("Choose an Icon")
+            .popover(isPresented: $showSymbolPicker, arrowEdge: .bottom) {
+                symbolPicker
             }
 
-            LazyVGrid(columns: Array(repeating: GridItem(.fixed(32), spacing: 12), count: 8), spacing: 8) {
-                ForEach(Connection.symbols, id: \.self) { symbol in
-                    let selected = draft.symbol == symbol
-                    Button {
-                        draft.symbol = symbol
-                    } label: {
-                        Image(systemName: symbol)
-                            .font(.system(size: 13, weight: .medium))
-                            .frame(width: 32, height: 32)
-                            .foregroundStyle(selected ? draft.tint.color : Color.secondary)
-                            .background(
-                                Circle().fill(selected ? draft.tint.color.opacity(0.16) : Color.secondary.opacity(0.09))
-                            )
-                            .overlay(Circle().strokeBorder(selected ? draft.tint.color : .clear, lineWidth: 1.5))
-                            .contentShape(Circle())
+            VStack(alignment: .leading, spacing: 11) {
+                TextField(
+                    "Name",
+                    text: $draft.name,
+                    prompt: Text(draft.bucket.trimmed.isEmpty ? "Connection Name" : draft.bucket)
+                )
+                .labelsHidden()
+                .textFieldStyle(.plain)
+                .font(.system(size: 17, weight: .semibold))
+                .padding(.vertical, 6)
+                .padding(.horizontal, 10)
+                .background(.quaternary.opacity(0.55), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .focused($focusedField, equals: .name)
+
+                HStack(spacing: 5) {
+                    ForEach(ConnectionTint.allCases) { tint in
+                        Button {
+                            draft.tint = tint
+                        } label: {
+                            Circle()
+                                .fill(tint.gradient)
+                                .frame(width: 19, height: 19)
+                                .padding(3)
+                                .overlay {
+                                    Circle()
+                                        .strokeBorder(Color.secondary.opacity(draft.tint == tint ? 0.55 : 0), lineWidth: 2)
+                                }
+                                .contentShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .help(tint.displayName)
+                        .accessibilityLabel(tint.displayName)
                     }
-                    .buttonStyle(.plain)
                 }
             }
-            .padding(.bottom, 6)
         }
-        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var symbolPicker: some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.fixed(34), spacing: 10), count: 4), spacing: 10) {
+            ForEach(Connection.symbols, id: \.self) { symbol in
+                let selected = draft.symbol == symbol
+                Button {
+                    draft.symbol = symbol
+                    showSymbolPicker = false
+                } label: {
+                    Image(systemName: symbol)
+                        .font(.system(size: 14, weight: .medium))
+                        .frame(width: 34, height: 34)
+                        .foregroundStyle(selected ? Color.white : Color.secondary)
+                        .background(
+                            Circle().fill(selected ? AnyShapeStyle(draft.tint.gradient) : AnyShapeStyle(Color.secondary.opacity(0.12)))
+                        )
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(14)
     }
 
     // MARK: - Footer

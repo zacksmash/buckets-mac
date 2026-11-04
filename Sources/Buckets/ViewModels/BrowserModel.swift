@@ -31,6 +31,7 @@ final class BrowserModel {
     @ObservationIgnored private var reloadTask: Task<Void, Never>?
     @ObservationIgnored private var reservedPaths: Set<String> = []
     @ObservationIgnored private var selectionAnchor: BrowserItem.ID?
+    @ObservationIgnored private var isStarting = false
 
     private(set) var prefix = ""
     private(set) var backStack: [String] = []
@@ -69,17 +70,26 @@ final class BrowserModel {
 
     /// Creates the client lazily so throwaway models built during view updates stay cheap.
     func start() {
-        guard client == nil else { return }
+        guard client == nil, !isStarting else { return }
         if UserDefaults.standard.bool(forKey: "DemoMode") {
             loadDemoContent()
             return
         }
-        do {
-            let secret = Keychain.secret(for: connection.id) ?? ""
-            client = try S3Client(connection: connection, secret: secret)
-            load(prefix)
-        } catch {
-            state = .failed(error.localizedDescription)
+        isStarting = true
+        state = .loading
+        let connection = self.connection
+        Task {
+            // The Keychain may show a system prompt; never block the main thread on it.
+            let secret = await Task.detached(priority: .userInitiated) {
+                Keychain.secret(for: connection.id) ?? ""
+            }.value
+            isStarting = false
+            do {
+                client = try S3Client(connection: connection, secret: secret)
+                load(prefix)
+            } catch {
+                state = .failed(error.localizedDescription)
+            }
         }
     }
 
