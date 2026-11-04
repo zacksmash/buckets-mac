@@ -11,6 +11,13 @@ enum Main {
             IconRenderer.renderIconSet(to: URL(fileURLWithPath: arguments[index + 1]))
             return
         }
+        if arguments.contains("--selftest") {
+            Task {
+                let status = await SelfTest.run()
+                exit(status)
+            }
+            RunLoop.main.run()
+        }
         BucketsApp.main()
     }
 }

@@ -30,7 +30,6 @@ struct PathBar: View {
                     }
                     .padding(.horizontal, 8)
                 }
-                .defaultScrollAnchor(.trailing)
 
                 Spacer(minLength: 0)
 

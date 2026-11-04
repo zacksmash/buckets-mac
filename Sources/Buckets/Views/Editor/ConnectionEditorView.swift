@@ -73,6 +73,9 @@ struct ConnectionEditorView: View {
                             .focused($focusedField, equals: .region)
                     }
 
+                    TextField("Bucket", text: $draft.bucket, prompt: Text("my-bucket"))
+                        .focused($focusedField, equals: .bucket)
+
                     LabeledContent("Endpoint URL") {
                         Text(draft.endpointURL?.absoluteString ?? "—")
                             .font(.system(size: 11, design: .monospaced))
@@ -82,18 +85,13 @@ struct ConnectionEditorView: View {
                             .truncationMode(.middle)
                     }
                 } header: {
-                    Text("Service")
+                    Text("Storage")
                 } footer: {
                     if draft.provider == .cloudflareR2 {
                         Text("Find your Account ID in the Cloudflare dashboard under **R2 Object Storage**. You can also paste the full S3 API URL.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
-                }
-
-                Section("Bucket") {
-                    TextField("Bucket Name", text: $draft.bucket, prompt: Text("my-bucket"))
-                        .focused($focusedField, equals: .bucket)
                 }
 
                 Section {
@@ -145,7 +143,7 @@ struct ConnectionEditorView: View {
             footer
         }
         .frame(width: 540)
-        .frame(minHeight: 460, idealHeight: 640, maxHeight: 640)
+        .frame(minHeight: 460, idealHeight: 680, maxHeight: 680)
         .onAppear {
             focusedField = isNew ? .name : nil
         }
