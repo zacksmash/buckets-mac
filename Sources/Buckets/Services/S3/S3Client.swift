@@ -149,11 +149,13 @@ final class S3Client: @unchecked Sendable {
             canonicalURI += "/" + SigV4Signer.uriEncode(key, encodeSlash: false)
         }
 
-        let canonicalQuery = query
-            .map { (SigV4Signer.uriEncode($0.0, encodeSlash: true), SigV4Signer.uriEncode($0.1, encodeSlash: true)) }
-            .sorted { $0.0 == $1.0 ? $0.1 < $1.1 : $0.0 < $1.0 }
-            .map { "\($0.0)=\($0.1)" }
-            .joined(separator: "&")
+        let encodedQuery: [(String, String)] = query.map { pair in
+            (SigV4Signer.uriEncode(pair.0, encodeSlash: true), SigV4Signer.uriEncode(pair.1, encodeSlash: true))
+        }
+        let sortedQuery = encodedQuery.sorted { (a: (String, String), b: (String, String)) -> Bool in
+            a.0 == b.0 ? a.1 < b.1 : a.0 < b.0
+        }
+        let canonicalQuery = sortedQuery.map { "\($0.0)=\($0.1)" }.joined(separator: "&")
 
         var components = URLComponents()
         components.scheme = endpoint.scheme ?? "https"

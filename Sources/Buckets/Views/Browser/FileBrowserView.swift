@@ -26,6 +26,11 @@ struct FileBrowserView: View {
     }
 
     var body: some View {
+        withLifecycle(withDialogs(chrome))
+    }
+
+    // Split into stages so the type checker can handle the modifier chain.
+    private var chrome: some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(nsColor: .controlBackgroundColor))
@@ -62,6 +67,10 @@ struct FileBrowserView: View {
                     .inspectorColumnWidth(min: 250, ideal: 290, max: 380)
             }
             .quickLookPreview($model.quickLookURL)
+    }
+
+    private func withDialogs<V: View>(_ view: V) -> some View {
+        view
             .sheet(item: $model.editingDocument) { document in
                 TextEditorSheet(document: document, model: model)
             }
@@ -120,6 +129,10 @@ struct FileBrowserView: View {
             } message: {
                 Text(model.errorMessage ?? "")
             }
+    }
+
+    private func withLifecycle<V: View>(_ view: V) -> some View {
+        view
             .onChange(of: model.isNewFolderPromptPresented) { _, presented in
                 if presented { newFolderName = "untitled folder" }
             }
