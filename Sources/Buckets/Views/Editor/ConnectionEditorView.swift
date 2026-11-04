@@ -225,7 +225,6 @@ struct ConnectionEditorView: View {
     }
 
     private var symbolPicker: some View {
-        GlassEffectContainer(spacing: 10) {
         LazyVGrid(columns: Array(repeating: GridItem(.fixed(34), spacing: 10), count: 4), spacing: 10) {
             ForEach(Connection.symbols, id: \.self) { symbol in
                 let selected = draft.symbol == symbol
@@ -240,12 +239,10 @@ struct ConnectionEditorView: View {
                         .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
-                .glassEffect(
-                    selected ? .regular.tint(draft.tint.color).interactive() : .regular.interactive(),
-                    in: Circle()
+                .background(
+                    Circle().fill(selected ? AnyShapeStyle(draft.tint.gradient) : AnyShapeStyle(Color.primary.opacity(0.08)))
                 )
             }
-        }
         }
         .padding(14)
     }
