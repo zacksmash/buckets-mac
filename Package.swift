@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "Buckets",
-    platforms: [.macOS(.v15)],
+    platforms: [.macOS("15.0")],
     targets: [
         .executableTarget(
             name: "Buckets",

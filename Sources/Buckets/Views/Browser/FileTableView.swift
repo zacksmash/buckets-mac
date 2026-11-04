@@ -30,8 +30,8 @@ struct FileTableView: View {
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
             }
-            .alignment(.numeric)
             .width(min: 60, ideal: 80, max: 120)
+            .alignment(.numeric)
 
             TableColumn("Kind", value: \.kindDescription) { item in
                 Text(item.kindDescription)

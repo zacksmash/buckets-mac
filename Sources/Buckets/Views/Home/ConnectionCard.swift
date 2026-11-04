@@ -56,6 +56,7 @@ struct ConnectionCard: View {
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
+                    .fixedSize()
             }
         }
         .padding(16)
@@ -151,6 +152,7 @@ struct ProviderBadge: View {
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
             .background(.quaternary.opacity(0.7), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+            .fixedSize()
     }
 }
 
