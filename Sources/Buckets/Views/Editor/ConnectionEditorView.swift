@@ -54,9 +54,13 @@ struct ConnectionEditorView: View {
                     .pickerStyle(.segmented)
 
                     if draft.provider == .cloudflareR2 {
-                        TextField("Account ID", text: $draft.accountID, prompt: Text("32-character account ID"))
-                            .focused($focusedField, equals: .account)
-                            .font(.system(.body, design: .monospaced))
+                        LabeledContent("Account ID") {
+                            TextField("Account ID", text: $draft.accountID, prompt: Text("32-character ID"))
+                                .labelsHidden()
+                                .multilineTextAlignment(.trailing)
+                                .font(.system(.body, design: .monospaced))
+                                .focused($focusedField, equals: .account)
+                        }
                         Picker("Jurisdiction", selection: $draft.jurisdiction) {
                             ForEach(R2Jurisdiction.allCases) { jurisdiction in
                                 Text(jurisdiction.displayName).tag(jurisdiction)
@@ -93,9 +97,13 @@ struct ConnectionEditorView: View {
                 }
 
                 Section {
-                    TextField("Access Key ID", text: $draft.accessKeyID, prompt: Text("Required"))
-                        .focused($focusedField, equals: .accessKey)
-                        .font(.system(.body, design: .monospaced))
+                    LabeledContent("Access Key ID") {
+                        TextField("Access Key ID", text: $draft.accessKeyID, prompt: Text("Required"))
+                            .labelsHidden()
+                            .multilineTextAlignment(.trailing)
+                            .font(.system(.body, design: .monospaced))
+                            .focused($focusedField, equals: .accessKey)
+                    }
                     LabeledContent("Secret Access Key") {
                         HStack(spacing: 6) {
                             Group {
@@ -136,7 +144,8 @@ struct ConnectionEditorView: View {
             Divider()
             footer
         }
-        .frame(width: 560, height: 720)
+        .frame(width: 540)
+        .frame(minHeight: 460, idealHeight: 640, maxHeight: 640)
         .onAppear {
             focusedField = isNew ? .name : nil
         }
@@ -146,8 +155,8 @@ struct ConnectionEditorView: View {
     // MARK: - Identity
 
     private var identityHeader: some View {
-        VStack(spacing: 16) {
-            ConnectionIcon(tint: draft.tint, symbol: draft.symbol, size: 76)
+        VStack(spacing: 14) {
+            ConnectionIcon(tint: draft.tint, symbol: draft.symbol, size: 64)
                 .animation(.snappy, value: draft.tint)
                 .animation(.snappy, value: draft.symbol)
                 .padding(.top, 6)
@@ -157,23 +166,24 @@ struct ConnectionEditorView: View {
                 text: $draft.name,
                 prompt: Text(draft.bucket.trimmed.isEmpty ? "Connection Name" : draft.bucket)
             )
+            .labelsHidden()
             .textFieldStyle(.plain)
-            .font(.system(size: 20, weight: .semibold))
+            .font(.system(size: 18, weight: .semibold))
             .multilineTextAlignment(.center)
-            .padding(.vertical, 9)
+            .padding(.vertical, 7)
             .padding(.horizontal, 12)
-            .background(.quaternary.opacity(0.55), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .frame(maxWidth: 340)
+            .background(.quaternary.opacity(0.55), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .frame(maxWidth: 342)
             .focused($focusedField, equals: .name)
 
-            HStack(spacing: 10) {
+            HStack(spacing: 6) {
                 ForEach(ConnectionTint.allCases) { tint in
                     Button {
                         draft.tint = tint
                     } label: {
                         Circle()
                             .fill(tint.gradient)
-                            .frame(width: 22, height: 22)
+                            .frame(width: 20, height: 20)
                             .padding(3)
                             .overlay {
                                 Circle()
@@ -187,15 +197,15 @@ struct ConnectionEditorView: View {
                 }
             }
 
-            LazyVGrid(columns: Array(repeating: GridItem(.fixed(34), spacing: 9), count: 8), spacing: 9) {
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(32), spacing: 12), count: 8), spacing: 8) {
                 ForEach(Connection.symbols, id: \.self) { symbol in
                     let selected = draft.symbol == symbol
                     Button {
                         draft.symbol = symbol
                     } label: {
                         Image(systemName: symbol)
-                            .font(.system(size: 14, weight: .medium))
-                            .frame(width: 34, height: 34)
+                            .font(.system(size: 13, weight: .medium))
+                            .frame(width: 32, height: 32)
                             .foregroundStyle(selected ? draft.tint.color : Color.secondary)
                             .background(
                                 Circle().fill(selected ? draft.tint.color.opacity(0.16) : Color.secondary.opacity(0.09))
@@ -223,7 +233,8 @@ struct ConnectionEditorView: View {
             .disabled(!isValid || testState == .testing)
 
             testStatus
-                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer(minLength: 8)
 
             Button("Cancel", role: .cancel) { dismiss() }
                 .keyboardShortcut(.cancelAction)
@@ -235,6 +246,7 @@ struct ConnectionEditorView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
+        .frame(maxWidth: .infinity)
         .background(.bar)
     }
 

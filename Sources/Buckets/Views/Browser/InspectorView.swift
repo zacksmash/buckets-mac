@@ -40,7 +40,7 @@ private struct ItemInspector: View {
         VStack(alignment: .leading, spacing: 18) {
             preview
                 .frame(maxWidth: .infinity)
-                .frame(height: 190)
+                .frame(height: 170)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.name)
@@ -65,7 +65,7 @@ private struct ItemInspector: View {
                     } else {
                         InfoRow(label: "Size", value: "\(Format.exactBytes(item.size)) (\(Format.bytes(item.size)))")
                         if let date = item.lastModified {
-                            InfoRow(label: "Modified", value: Format.longDate(date))
+                            InfoRow(label: "Modified", value: Format.date(date))
                         }
                         if let imageSize {
                             InfoRow(label: "Dimensions", value: "\(Int(imageSize.width)) × \(Int(imageSize.height))")
@@ -97,7 +97,7 @@ private struct ItemInspector: View {
                     InfoRow(label: "Bucket", value: model.connection.bucket)
                     InfoRow(label: "Key", value: item.key, monospaced: true)
                     if let etag = metadata?.etag ?? item.etag, !item.isFolder {
-                        InfoRow(label: "ETag", value: etag, monospaced: true)
+                        InfoRow(label: "ETag", value: etag, monospaced: true, compact: true)
                     }
                 }
             }
@@ -145,7 +145,7 @@ private struct ItemInspector: View {
             )
             .transition(.opacity)
         } else {
-            FileIconView(item: item, size: 128)
+            FileIconView(item: item, size: 120)
         }
     }
 

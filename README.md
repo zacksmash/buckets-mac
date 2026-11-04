@@ -8,7 +8,7 @@ A native macOS app for browsing and managing Cloudflare R2 and other S3-compatib
 - Create folders, rename, delete, download, and edit text files in place
 
 ## Requirements
-macOS 14 or later, Xcode 15 or later.
+macOS 15 or later, Xcode 16 or later.
 
 ## Build
 ```sh

@@ -6,6 +6,7 @@ struct WelcomeView: View {
     @State private var appeared = false
 
     var body: some View {
+        GeometryReader { geometry in
         ScrollView {
             VStack(spacing: 0) {
                 AppIconView(size: 116)
@@ -61,9 +62,10 @@ struct WelcomeView: View {
                 .controlSize(.extraLarge)
                 .keyboardShortcut(.defaultAction)
             }
-            .padding(.vertical, 56)
+            .padding(.vertical, 48)
             .padding(.horizontal, 40)
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, minHeight: geometry.size.height)
+        }
         }
         .onAppear {
             withAnimation(.spring(duration: 0.7, bounce: 0.3).delay(0.05)) { appeared = true }

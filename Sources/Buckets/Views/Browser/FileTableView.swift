@@ -16,29 +16,29 @@ struct FileTableView: View {
                 }
                 .help(item.displayPath)
             }
-            .width(min: 200, ideal: 380)
+            .width(min: 160)
 
             TableColumn("Date Modified", value: \.sortDate) { item in
                 Text(item.lastModified.map(Format.date) ?? "--")
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
-            .width(min: 110, ideal: 190)
+            .width(min: 110, ideal: 175, max: 230)
 
             TableColumn("Size", value: \.sortSize) { item in
                 Text(item.isFolder ? "--" : Format.bytes(item.size))
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
-                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            .width(min: 60, ideal: 90, max: 140)
+            .alignment(.numeric)
+            .width(min: 60, ideal: 80, max: 120)
 
             TableColumn("Kind", value: \.kindDescription) { item in
                 Text(item.kindDescription)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
-            .width(min: 80, ideal: 150)
+            .width(min: 80, ideal: 130, max: 200)
         } rows: {
             ForEach(model.displayedItems) { item in
                 TableRow(item)
@@ -47,7 +47,7 @@ struct FileTableView: View {
                     }
             }
         }
-        .tableStyle(.inset(alternatesRowBackgrounds: true))
+        .tableStyle(.inset(alternatesRowBackgrounds: false))
         .contextMenu(forSelectionType: BrowserItem.ID.self) { ids in
             ItemContextMenu(model: model, ids: ids, showInspector: $showInspector)
         } primaryAction: { ids in

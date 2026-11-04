@@ -101,16 +101,23 @@ struct InfoRow: View {
     let label: String
     let value: String
     var monospaced = false
+    /// Single line with middle truncation, for hashes and long keys.
+    var compact = false
+
+    static let labelWidth: CGFloat = 78
 
     var body: some View {
         GridRow(alignment: .firstTextBaseline) {
             Text(label)
                 .foregroundStyle(.secondary)
-                .gridColumnAlignment(.trailing)
+                .lineLimit(1)
+                .frame(width: Self.labelWidth, alignment: .trailing)
             Text(value)
                 .font(monospaced ? .system(size: 11, design: .monospaced) : .system(size: 12))
                 .textSelection(.enabled)
-                .lineLimit(4)
+                .lineLimit(compact ? 1 : 4)
+                .truncationMode(.middle)
+                .help(compact ? value : "")
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .font(.system(size: 12))

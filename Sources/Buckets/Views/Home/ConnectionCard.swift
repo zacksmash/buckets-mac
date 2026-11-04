@@ -49,6 +49,7 @@ struct ConnectionCard: View {
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
                     .truncationMode(.tail)
+                    .layoutPriority(1)
                     .help(connection.hostDescription)
                 Spacer(minLength: 4)
                 Text(lastOpenedLabel)
@@ -124,7 +125,7 @@ struct ConnectionCard: View {
     private var locationLabel: String {
         switch connection.provider {
         case .cloudflareR2:
-            return connection.jurisdiction == .automatic ? "Cloudflare" : "Cloudflare · \(connection.jurisdiction.displayName)"
+            return connection.jurisdiction == .automatic ? "Cloudflare" : "Cloudflare · \(connection.jurisdiction.shortName)"
         case .s3Compatible:
             return connection.hostDescription
         }

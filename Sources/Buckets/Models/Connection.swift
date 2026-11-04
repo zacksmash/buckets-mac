@@ -36,6 +36,14 @@ enum R2Jurisdiction: String, Codable, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    var shortName: String {
+        switch self {
+        case .automatic: "Default"
+        case .eu: "EU"
+        case .fedramp: "FedRAMP"
+        }
+    }
+
     var hostInfix: String {
         switch self {
         case .automatic: ""
