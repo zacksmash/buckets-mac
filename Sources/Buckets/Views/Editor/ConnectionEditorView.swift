@@ -142,7 +142,6 @@ struct ConnectionEditorView: View {
             .onChange(of: draft.accountID) { _, value in absorbPastedEndpoint(value) }
             .onChange(of: draft.provider) { _, _ in testState = .idle }
 
-            Divider()
             footer
         }
         .frame(width: 540)
@@ -226,6 +225,7 @@ struct ConnectionEditorView: View {
     }
 
     private var symbolPicker: some View {
+        GlassEffectContainer(spacing: 10) {
         LazyVGrid(columns: Array(repeating: GridItem(.fixed(34), spacing: 10), count: 4), spacing: 10) {
             ForEach(Connection.symbols, id: \.self) { symbol in
                 let selected = draft.symbol == symbol
@@ -236,14 +236,16 @@ struct ConnectionEditorView: View {
                     Image(systemName: symbol)
                         .font(.system(size: 14, weight: .medium))
                         .frame(width: 34, height: 34)
-                        .foregroundStyle(selected ? Color.white : Color.secondary)
-                        .background(
-                            Circle().fill(selected ? AnyShapeStyle(draft.tint.gradient) : AnyShapeStyle(Color.secondary.opacity(0.12)))
-                        )
+                        .foregroundStyle(selected ? Color.white : Color.primary)
                         .contentShape(Circle())
                 }
                 .buttonStyle(.plain)
+                .glassEffect(
+                    selected ? .regular.tint(draft.tint.color).interactive() : .regular.interactive(),
+                    in: Circle()
+                )
             }
+        }
         }
         .padding(14)
     }
@@ -257,6 +259,7 @@ struct ConnectionEditorView: View {
             } label: {
                 Text("Test Connection")
             }
+            .buttonStyle(.glass)
             .disabled(!isValid || testState == .testing)
 
             testStatus
@@ -265,16 +268,16 @@ struct ConnectionEditorView: View {
 
             Button("Cancel", role: .cancel) { dismiss() }
                 .keyboardShortcut(.cancelAction)
+                .buttonStyle(.glass)
 
             Button(isNew ? "Add Connection" : "Save") { save() }
                 .keyboardShortcut(.defaultAction)
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
                 .disabled(!isValid)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
         .frame(maxWidth: .infinity)
-        .background(.bar)
     }
 
     @ViewBuilder private var testStatus: some View {

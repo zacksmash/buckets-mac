@@ -96,6 +96,7 @@ struct TextEditorSheet: View {
                 if isDirty { confirmDiscard = true } else { dismiss() }
             }
             .keyboardShortcut(.cancelAction)
+            .buttonStyle(.glass)
 
             Button {
                 save(thenClose: false)
@@ -107,12 +108,11 @@ struct TextEditorSheet: View {
                 .frame(minWidth: 56)
             }
             .keyboardShortcut("s", modifiers: .command)
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.glassProminent)
             .disabled(!isDirty || isSaving)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(.bar)
     }
 
     private var stats: String {

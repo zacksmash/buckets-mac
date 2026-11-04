@@ -87,8 +87,8 @@ struct ConnectionCard: View {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(.secondary)
-                    .frame(width: 26, height: 26)
-                    .background(.quaternary.opacity(0.6), in: Circle())
+                    .frame(width: 28, height: 28)
+                    .glassEffect(.regular.interactive(), in: Circle())
                     .contentShape(Circle())
             }
             .menuStyle(.borderlessButton)

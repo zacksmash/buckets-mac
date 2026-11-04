@@ -82,11 +82,12 @@ struct EmptyFolderView: View {
                 Button(action: onUpload) {
                     Label("Upload Files…", systemImage: "arrow.up.doc")
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
 
                 Button(action: onNewFolder) {
                     Label("New Folder", systemImage: "folder.badge.plus")
                 }
+                .buttonStyle(.glass)
             }
             .controlSize(.large)
             .padding(.top, 22)
@@ -125,16 +126,8 @@ struct InfoRow: View {
 }
 
 extension View {
-    /// Liquid Glass on macOS 26+, a material capsule on earlier systems.
-    @ViewBuilder
+    /// Floating Liquid Glass capsule for transient overlays.
     func floatingCapsule() -> some View {
-        if #available(macOS 26.0, *) {
-            self.glassEffect(.regular, in: Capsule())
-        } else {
-            self
-                .background(.regularMaterial, in: Capsule())
-                .overlay(Capsule().strokeBorder(.separator, lineWidth: 0.5))
-                .shadow(color: .black.opacity(0.14), radius: 12, y: 4)
-        }
+        glassEffect(.regular, in: Capsule())
     }
 }

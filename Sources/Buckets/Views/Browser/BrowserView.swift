@@ -68,7 +68,7 @@ struct SidebarView: View {
             }
         }
         .listStyle(.sidebar)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        .safeAreaBar(edge: .bottom, spacing: 0) {
             HStack(spacing: 2) {
                 Button(action: onHome) {
                     Label("All Connections", systemImage: "square.grid.2x2")

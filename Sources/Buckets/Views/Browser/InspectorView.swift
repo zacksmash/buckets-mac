@@ -183,6 +183,7 @@ private struct ItemInspector: View {
         }
         .controlSize(.regular)
         .labelStyle(.titleOnly)
+        .buttonStyle(.glass)
     }
 
     private func loadDetails() async {
@@ -250,6 +251,7 @@ private struct MultipleSelectionInspector: View {
                     Text("Delete…").frame(maxWidth: .infinity)
                 }
             }
+            .buttonStyle(.glass)
         }
     }
 

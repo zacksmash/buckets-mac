@@ -58,7 +58,7 @@ struct WelcomeView: View {
                     Text("Add Your First Connection")
                         .frame(minWidth: 240)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
                 .controlSize(.extraLarge)
                 .keyboardShortcut(.defaultAction)
             }

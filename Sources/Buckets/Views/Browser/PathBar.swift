@@ -6,7 +6,6 @@ struct PathBar: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Divider()
             HStack(spacing: 8) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 1) {
@@ -46,9 +45,8 @@ struct PathBar: View {
                     .fixedSize()
                     .padding(.trailing, 12)
             }
-            .frame(height: 28)
+            .frame(height: 30)
         }
-        .background(.bar)
     }
 }
 

@@ -34,7 +34,7 @@ struct FileBrowserView: View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(nsColor: .controlBackgroundColor))
-            .safeAreaInset(edge: .bottom, spacing: 0) {
+            .safeAreaBar(edge: .bottom, spacing: 0) {
                 PathBar(model: model)
             }
             .overlay {
@@ -157,8 +157,9 @@ struct FileBrowserView: View {
             } actions: {
                 HStack {
                     Button("Try Again") { model.reload() }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.glassProminent)
                     Button("Edit Connection…") { model.onEditConnection() }
+                        .buttonStyle(.glass)
                 }
                 .controlSize(.large)
             }
@@ -223,6 +224,8 @@ struct FileBrowserView: View {
             .help("Change the item arrangement")
         }
 
+        ToolbarSpacer(.fixed, placement: .primaryAction)
+
         ToolbarItemGroup(placement: .primaryAction) {
             Button {
                 model.requestNewFolder()
@@ -237,7 +240,11 @@ struct FileBrowserView: View {
                 Label("Upload", systemImage: "arrow.up.doc")
             }
             .help("Upload Files (⌘U)")
+        }
 
+        ToolbarSpacer(.fixed, placement: .primaryAction)
+
+        ToolbarItemGroup(placement: .primaryAction) {
             Button {
                 model.downloadSelection()
             } label: {
@@ -255,11 +262,11 @@ struct FileBrowserView: View {
             .help("Delete (⌘⌫)")
         }
 
-        ToolbarItem(placement: .primaryAction) {
-            TransfersButton(transfers: model.transfers)
-        }
+        ToolbarSpacer(.fixed, placement: .primaryAction)
 
-        ToolbarItem(placement: .primaryAction) {
+        ToolbarItemGroup(placement: .primaryAction) {
+            TransfersButton(transfers: model.transfers)
+
             Button {
                 withAnimation(.snappy) { showInspector.toggle() }
             } label: {
