@@ -277,11 +277,16 @@ final class S3Client: @unchecked Sendable {
         return try await perform(request).0
     }
 
-    func putObject(_ key: String, data: Data, contentType: String? = nil) async throws {
+    /// Uploads `data`. With `ifMatch`, the server rejects the write (412) if the object's ETag has changed.
+    /// Returns the new ETag when the server sends one.
+    @discardableResult
+    func putObject(_ key: String, data: Data, contentType: String? = nil, ifMatch: String? = nil) async throws -> String? {
         var headers: [String: String] = [:]
         if let contentType { headers["Content-Type"] = contentType }
+        if let ifMatch { headers["If-Match"] = "\"\(ifMatch)\"" }
         let request = try makeRequest(method: "PUT", key: key, headers: headers, payloadHash: data.sha256Hex)
-        try await perform(request, body: data)
+        let (_, http) = try await perform(request, body: data)
+        return http.value(forHTTPHeaderField: "ETag")?.trimmingCharacters(in: CharacterSet(charactersIn: "\""))
     }
 
     func createFolder(_ key: String) async throws {

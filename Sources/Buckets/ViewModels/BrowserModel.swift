@@ -45,6 +45,8 @@ final class BrowserModel {
 
     var busyMessage: String?
     var errorMessage: String?
+    /// ETag each open text document was loaded at, sent as If-Match on save.
+    @ObservationIgnored private var editETags: [UUID: String] = [:]
     var quickLookURL: URL?
     var editingDocument: TextDocument?
 
@@ -716,6 +718,8 @@ final class BrowserModel {
         Task {
             defer { busyMessage = nil }
             do {
+                // Read the ETag first: if the file changes before the GET, saving fails safe with a conflict.
+                let metadata = try? await client.headObject(item.key)
                 let data = try await client.getObjectData(item.key)
                 let encoding: String.Encoding
                 let text: String
@@ -729,13 +733,15 @@ final class BrowserModel {
                     errorMessage = "“\(item.name)” doesn't look like a text file."
                     return
                 }
-                let metadata = try? await client.headObject(item.key)
                 editingDocument = TextDocument(
                     item: item,
                     original: text,
                     encoding: encoding,
                     contentType: metadata?.contentType ?? MIME.type(forFileName: item.name)
                 )
+                if let document = editingDocument {
+                    editETags[document.id] = metadata?.etag ?? item.etag
+                }
             } catch {
                 present(error)
             }
@@ -744,10 +750,35 @@ final class BrowserModel {
 
     func save(_ document: TextDocument, text: String) async throws {
         let client = try requireClient()
-        let data = text.data(using: document.encoding) ?? Data(text.utf8)
-        try await client.putObject(document.item.key, data: data, contentType: document.contentType)
+        guard let data = text.data(using: document.encoding) else {
+            throw SaveError.unencodable(document.encoding.description)
+        }
+        do {
+            let etag = try await client.putObject(
+                document.item.key, data: data, contentType: document.contentType, ifMatch: editETags[document.id]
+            )
+            editETags[document.id] = etag
+        } catch let S3Error.service(code, _, status) where status == 412 || code == "PreconditionFailed" {
+            throw SaveError.changedOnServer(document.item.name)
+        } catch S3Error.http(412) {
+            throw SaveError.changedOnServer(document.item.name)
+        }
         thumbnailCache.removeObject(forKey: document.item.key as NSString)
         reload()
+    }
+
+    enum SaveError: LocalizedError {
+        case unencodable(String)
+        case changedOnServer(String)
+
+        var errorDescription: String? {
+            switch self {
+            case let .unencodable(encoding):
+                "This text has characters that can't be saved in the file's original encoding (\(encoding)). Remove them, or download the file and edit it elsewhere."
+            case let .changedOnServer(name):
+                "“\(name)” changed on the server since you opened it. Close the editor and open it again to get the latest version. Your edits weren't saved."
+            }
+        }
     }
 
     func metadata(for item: BrowserItem) async throws -> S3ObjectMetadata {
