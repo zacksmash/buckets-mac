@@ -5,48 +5,46 @@ struct PathBar: View {
     let model: BrowserModel
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 8) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 1) {
-                        ForEach(Array(model.breadcrumbs.enumerated()), id: \.element.id) { index, crumb in
-                            if index > 0 {
-                                Image(systemName: "chevron.compact.right")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundStyle(.tertiary)
-                                    .padding(.horizontal, 1)
-                            }
-                            PathBarSegment(
-                                crumb: crumb,
-                                connection: model.connection,
-                                isCurrent: index == model.breadcrumbs.count - 1
-                            ) {
-                                model.navigate(to: crumb.prefix)
-                            } onDrop: { urls in
-                                model.upload(urls, into: crumb.prefix)
-                            }
+        HStack(spacing: 8) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 1) {
+                    ForEach(Array(model.breadcrumbs.enumerated()), id: \.element.id) { index, crumb in
+                        if index > 0 {
+                            Image(systemName: "chevron.compact.right")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(.tertiary)
+                                .padding(.horizontal, 1)
+                        }
+                        PathBarSegment(
+                            crumb: crumb,
+                            connection: model.connection,
+                            isCurrent: index == model.breadcrumbs.count - 1
+                        ) {
+                            model.navigate(to: crumb.prefix)
+                        } onDrop: { urls in
+                            model.upload(urls, into: crumb.prefix)
                         }
                     }
-                    .padding(.horizontal, 8)
                 }
-
-                Spacer(minLength: 0)
-
-                if model.isLoading && !model.items.isEmpty {
-                    ProgressView()
-                        .controlSize(.mini)
-                }
-
-                Text(model.summaryText)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .fixedSize()
-                    .padding(.trailing, 12)
+                .padding(.horizontal, 8)
             }
-            .frame(height: 30)
+
+            Spacer(minLength: 0)
+
+            if model.isLoading && !model.items.isEmpty {
+                ProgressView()
+                    .controlSize(.mini)
+            }
+
+            Text(model.summaryText)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
+                .lineLimit(1)
+                .fixedSize()
+                .padding(.trailing, 12)
         }
+        .frame(height: 30)
     }
 }
 

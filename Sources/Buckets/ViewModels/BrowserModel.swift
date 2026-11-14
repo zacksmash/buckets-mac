@@ -61,7 +61,6 @@ final class BrowserModel {
     }
     var editingDocument: TextDocument?
 
-    // Prompts presented by the view.
     var isNewFolderPromptPresented = false
     var isNewFilePromptPresented = false
     var renameTarget: BrowserItem?

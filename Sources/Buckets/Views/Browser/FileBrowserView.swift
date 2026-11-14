@@ -7,9 +7,6 @@ struct FileBrowserView: View {
     @AppStorage("inspectorVisible") private var showInspector = false
 
     @State private var isDropTargeted = false
-    @State private var newFolderName = ""
-    @State private var newFileName = ""
-    @State private var renameText = ""
 
     init(
         connection: Connection,
@@ -26,11 +23,6 @@ struct FileBrowserView: View {
     }
 
     var body: some View {
-        withLifecycle(withDialogs(chrome))
-    }
-
-    // Split into stages so the type checker can handle the modifier chain.
-    private var chrome: some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color(nsColor: .controlBackgroundColor))
@@ -60,17 +52,73 @@ struct FileBrowserView: View {
             }
             .navigationTitle(model.currentFolderName)
             .navigationSubtitle(model.connection.displayName)
-            .toolbar { toolbar }
+            .toolbar { BrowserToolbar(model: model, viewMode: $viewMode, showInspector: $showInspector) }
             .searchable(text: $model.searchText, placement: .toolbar, prompt: "Search “\(model.currentFolderName)”")
             .inspector(isPresented: $showInspector) {
                 InspectorView(model: model)
                     .inspectorColumnWidth(min: 250, ideal: 290, max: 380)
             }
             .quickLookPreview($model.quickLookURL)
+            .modifier(BrowserDialogs(model: model))
+            .focusedSceneValue(\.browserModel, model)
+            .task { model.start() }
     }
 
-    private func withDialogs<V: View>(_ view: V) -> some View {
-        view
+    // MARK: - Content
+
+    @ViewBuilder private var content: some View {
+        if let error = model.loadError, model.items.isEmpty {
+            ContentUnavailableView {
+                Label("Couldn't Load “\(model.currentFolderName)”", systemImage: "exclamationmark.icloud")
+            } description: {
+                Text(error)
+            } actions: {
+                HStack {
+                    Button("Try Again") { model.reload() }
+                        .buttonStyle(.glassProminent)
+                    Button("Edit Connection…") { model.onEditConnection() }
+                        .buttonStyle(.glass)
+                }
+                .controlSize(.large)
+            }
+        } else if model.items.isEmpty && (model.isLoading || model.state == .idle) {
+            VStack(spacing: 12) {
+                ProgressView()
+                    .controlSize(.regular)
+                Text("Loading…")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if model.items.isEmpty {
+            EmptyFolderView(
+                folderName: model.currentFolderName,
+                onUpload: { model.requestUpload() },
+                onNewFolder: { model.requestNewFolder() }
+            )
+        } else if model.displayedItems.isEmpty {
+            ContentUnavailableView.search(text: model.searchText)
+        } else {
+            switch viewMode {
+            case .list:
+                FileTableView(model: model, showInspector: $showInspector)
+            case .grid:
+                FileGridView(model: model, showInspector: $showInspector)
+            }
+        }
+    }
+}
+
+/// The sheets, prompts and alerts the browser presents.
+private struct BrowserDialogs: ViewModifier {
+    @Bindable var model: BrowserModel
+
+    @State private var newFolderName = ""
+    @State private var newFileName = ""
+    @State private var renameText = ""
+
+    func body(content: Content) -> some View {
+        content
             .sheet(item: $model.editingDocument) { document in
                 TextEditorSheet(document: document, model: model)
             }
@@ -129,10 +177,6 @@ struct FileBrowserView: View {
             } message: {
                 Text(model.errorMessage ?? "")
             }
-    }
-
-    private func withLifecycle<V: View>(_ view: V) -> some View {
-        view
             .onChange(of: model.isNewFolderPromptPresented) { _, presented in
                 if presented { newFolderName = "untitled folder" }
             }
@@ -142,57 +186,15 @@ struct FileBrowserView: View {
             .onChange(of: model.renameTarget) { _, item in
                 if let item { renameText = item.name }
             }
-            .focusedSceneValue(\.browserModel, model)
-            .task { model.start() }
     }
+}
 
-    // MARK: - Content
+private struct BrowserToolbar: ToolbarContent {
+    let model: BrowserModel
+    @Binding var viewMode: BrowserViewMode
+    @Binding var showInspector: Bool
 
-    @ViewBuilder private var content: some View {
-        if let error = model.loadError, model.items.isEmpty {
-            ContentUnavailableView {
-                Label("Couldn't Load “\(model.currentFolderName)”", systemImage: "exclamationmark.icloud")
-            } description: {
-                Text(error)
-            } actions: {
-                HStack {
-                    Button("Try Again") { model.reload() }
-                        .buttonStyle(.glassProminent)
-                    Button("Edit Connection…") { model.onEditConnection() }
-                        .buttonStyle(.glass)
-                }
-                .controlSize(.large)
-            }
-        } else if model.items.isEmpty && (model.isLoading || model.state == .idle) {
-            VStack(spacing: 12) {
-                ProgressView()
-                    .controlSize(.regular)
-                Text("Loading…")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if model.items.isEmpty {
-            EmptyFolderView(
-                folderName: model.currentFolderName,
-                onUpload: { model.requestUpload() },
-                onNewFolder: { model.requestNewFolder() }
-            )
-        } else if model.displayedItems.isEmpty {
-            ContentUnavailableView.search(text: model.searchText)
-        } else {
-            switch viewMode {
-            case .list:
-                FileTableView(model: model, showInspector: $showInspector)
-            case .grid:
-                FileGridView(model: model, showInspector: $showInspector)
-            }
-        }
-    }
-
-    // MARK: - Toolbar
-
-    @ToolbarContentBuilder private var toolbar: some ToolbarContent {
+    var body: some ToolbarContent {
         ToolbarItem(placement: .navigation) {
             ControlGroup {
                 Button {

@@ -63,7 +63,6 @@ final class Transfer: Identifiable {
     var bytesDone: Int64 = 0
     var bytesTotal: Int64
     var startedAt: Date?
-    var finishedAt: Date?
     @ObservationIgnored var task: Task<Void, Never>?
     /// Bumped on every start, so a stale run never touches the current one's state.
     @ObservationIgnored var generation = 0
@@ -185,7 +184,6 @@ final class TransferManager {
         transfer.state = .queued
         transfer.bytesDone = 0
         transfer.startedAt = nil
-        transfer.finishedAt = nil
         let limiter = self.limiter
 
         transfer.task = Task {
@@ -217,13 +215,11 @@ final class TransferManager {
                 guard transfer.generation == generation else { return }
                 transfer.bytesDone = transfer.bytesTotal
                 transfer.state = .completed
-                transfer.finishedAt = Date()
                 transfer.onFinish?(true)
             } catch {
                 await limiter.release()
                 guard transfer.generation == generation else { return }
                 transfer.state = (Task.isCancelled || isCancellation(error)) ? .cancelled : .failed(error.localizedDescription)
-                transfer.finishedAt = Date()
                 transfer.onFinish?(false)
             }
         }

@@ -59,15 +59,7 @@ enum Format {
         return formatter
     }()
 
-    private static let longDateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .full
-        formatter.timeStyle = .medium
-        return formatter
-    }()
-
     static func date(_ date: Date) -> String { dateFormatter.string(from: date) }
-    static func longDate(_ date: Date) -> String { longDateFormatter.string(from: date) }
 
     static func relative(_ date: Date) -> String {
         if abs(date.timeIntervalSinceNow) < 60 { return "just now" }

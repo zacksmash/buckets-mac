@@ -106,7 +106,6 @@ struct AppIconView: View {
                         endPoint: .bottom
                     )
                 )
-                .offset(y: size * 0.0)
 
             shape.strokeBorder(
                 LinearGradient(colors: [.white.opacity(0.45), .white.opacity(0.05)], startPoint: .top, endPoint: .bottom),

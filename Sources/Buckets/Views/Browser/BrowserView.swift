@@ -2,7 +2,6 @@ import SwiftUI
 
 /// The browser window: connections sidebar + file browser for the active bucket.
 struct BrowserView: View {
-    @Environment(ConnectionStore.self) private var store
     @Environment(\.openWindow) private var openWindow
     let connection: Connection
     @Binding var activeID: UUID?

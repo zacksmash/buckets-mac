@@ -50,7 +50,6 @@ extension BrowserModel {
             destination: folderDescription(target),
             totalBytes: 0,
             operation: { progress in
-                // Gather files off the main thread.
                 var files: [(url: URL, key: String, size: Int64)] = []
                 let keys: [URLResourceKey] = [.isRegularFileKey, .fileSizeKey]
                 if let enumerator = FileManager.default.enumerator(
