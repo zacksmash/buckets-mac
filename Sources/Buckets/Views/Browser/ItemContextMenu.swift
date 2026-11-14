@@ -4,7 +4,6 @@ import SwiftUI
 struct ItemContextMenu: View {
     let model: BrowserModel
     let ids: Set<BrowserItem.ID>
-    @Binding var showInspector: Bool
 
     var body: some View {
         let items = model.items(for: ids)
@@ -32,7 +31,7 @@ struct ItemContextMenu: View {
             Divider()
             Button("Get Info") {
                 model.selection = ids
-                showInspector = true
+                model.isInspectorVisible = true
             }
             Button(items.count == 1 ? "Copy Path" : "Copy Paths") { model.copyPaths(ids) }
             Button(items.count == 1 ? "Copy S3 URI" : "Copy S3 URIs") { model.copyS3URIs(ids) }

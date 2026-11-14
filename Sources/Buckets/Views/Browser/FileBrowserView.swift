@@ -3,8 +3,6 @@ import QuickLook
 
 struct FileBrowserView: View {
     @State private var model: BrowserModel
-    @AppStorage("browserViewMode") private var viewMode: BrowserViewMode = .list
-    @AppStorage("inspectorVisible") private var showInspector = false
 
     @State private var isDropTargeted = false
 
@@ -62,9 +60,9 @@ struct FileBrowserView: View {
             }
             .navigationTitle(model.currentFolderName)
             .navigationSubtitle(model.connection.displayName)
-            .toolbar { BrowserToolbar(model: model, viewMode: $viewMode, showInspector: $showInspector) }
+            .toolbar { BrowserToolbar(model: model) }
             .searchable(text: $model.searchText, placement: .toolbar, prompt: "Search “\(model.currentFolderName)”")
-            .inspector(isPresented: $showInspector) {
+            .inspector(isPresented: $model.isInspectorVisible) {
                 InspectorView(model: model)
                     .inspectorColumnWidth(min: 250, ideal: 290, max: 380)
             }
@@ -109,11 +107,11 @@ struct FileBrowserView: View {
         } else if model.displayedItems.isEmpty {
             ContentUnavailableView.search(text: model.searchText)
         } else {
-            switch viewMode {
+            switch model.viewMode {
             case .list:
-                FileTableView(model: model, showInspector: $showInspector)
+                FileTableView(model: model)
             case .grid:
-                FileGridView(model: model, showInspector: $showInspector)
+                FileGridView(model: model)
             }
         }
     }
@@ -200,9 +198,7 @@ private struct BrowserDialogs: ViewModifier {
 }
 
 private struct BrowserToolbar: ToolbarContent {
-    let model: BrowserModel
-    @Binding var viewMode: BrowserViewMode
-    @Binding var showInspector: Bool
+    @Bindable var model: BrowserModel
 
     var body: some ToolbarContent {
         ToolbarItem(placement: .navigation) {
@@ -227,13 +223,23 @@ private struct BrowserToolbar: ToolbarContent {
         }
 
         ToolbarItem(placement: .primaryAction) {
-            Picker("View", selection: $viewMode) {
+            Picker("View", selection: $model.viewMode) {
                 Label("List", systemImage: "list.bullet").tag(BrowserViewMode.list)
                 Label("Icons", systemImage: "square.grid.2x2").tag(BrowserViewMode.grid)
             }
             .pickerStyle(.segmented)
             .labelStyle(.iconOnly)
             .help("Change the item arrangement")
+        }
+
+        ToolbarItem(placement: .primaryAction) {
+            Menu {
+                SortMenu(model: model)
+            } label: {
+                Label("Sort By", systemImage: "arrow.up.arrow.down")
+            }
+            .menuIndicator(.hidden)
+            .help("Change how items are sorted")
         }
 
         ToolbarSpacer(.fixed, placement: .primaryAction)
@@ -280,7 +286,7 @@ private struct BrowserToolbar: ToolbarContent {
             TransfersButton(transfers: model.transfers)
 
             Button {
-                withAnimation(.snappy) { showInspector.toggle() }
+                withAnimation(.snappy) { model.isInspectorVisible.toggle() }
             } label: {
                 Label("Inspector", systemImage: "info.circle")
             }

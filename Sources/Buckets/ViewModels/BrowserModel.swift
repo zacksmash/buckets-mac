@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 import UniformTypeIdentifiers
 
-enum BrowserViewMode: String, CaseIterable, Identifiable {
+enum BrowserViewMode: String, CaseIterable, Identifiable, Codable {
     case list, grid
     var id: String { rawValue }
 }
@@ -49,7 +49,15 @@ final class BrowserModel {
 
     var selection: Set<BrowserItem.ID> = []
     var searchText = ""
-    var sortOrder: [KeyPathComparator<BrowserItem>] = [KeyPathComparator(\BrowserItem.name, comparator: .localizedStandard)]
+    var sortOrder: [KeyPathComparator<BrowserItem>] = [BrowserSortField.name.comparator(ascending: true)] {
+        didSet { saveViewState() }
+    }
+    var viewMode: BrowserViewMode = .list {
+        didSet { saveViewState() }
+    }
+    var isInspectorVisible = false {
+        didSet { saveViewState() }
+    }
 
     var busyMessage: String?
     /// Short-lived note shown near the bottom of the window, like "Link Copied".
@@ -88,6 +96,12 @@ final class BrowserModel {
         self.transfers = transfers
         self.onHome = onHome
         self.onEditConnection = onEditConnection
+        if let saved = ConnectionViewState.load(for: connection.id) {
+            viewMode = saved.viewMode
+            isInspectorVisible = saved.isInspectorVisible
+            sortOrder = [saved.sortField.comparator(ascending: saved.sortAscending)]
+            prefix = saved.prefix
+        }
         thumbnailCache.totalCostLimit = 200_000_000
     }
 
@@ -119,6 +133,28 @@ final class BrowserModel {
                 state = .failed(error.localizedDescription)
             }
         }
+    }
+
+    // MARK: - View state
+
+    var sortField: BrowserSortField {
+        get { sortOrder.first.flatMap(BrowserSortField.init(comparator:)) ?? .name }
+        set { sortOrder = [newValue.comparator(ascending: newValue == sortField ? isSortAscending : newValue.defaultAscending)] }
+    }
+
+    var isSortAscending: Bool {
+        get { sortOrder.first?.order != .reverse }
+        set { sortOrder = [sortField.comparator(ascending: newValue)] }
+    }
+
+    private func saveViewState() {
+        ConnectionViewState(
+            viewMode: viewMode,
+            sortField: sortField,
+            sortAscending: isSortAscending,
+            isInspectorVisible: isInspectorVisible,
+            prefix: prefix
+        ).save(for: connection.id)
     }
 
     // MARK: - Derived state
@@ -274,6 +310,7 @@ final class BrowserModel {
 
     private func show(_ newPrefix: String) {
         prefix = newPrefix
+        saveViewState()
         searchText = ""
         items = []
         selection = []

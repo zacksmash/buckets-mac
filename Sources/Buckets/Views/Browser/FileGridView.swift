@@ -4,7 +4,6 @@ import AppKit
 /// Finder-style icon view with image thumbnails.
 struct FileGridView: View {
     @Bindable var model: BrowserModel
-    @Binding var showInspector: Bool
     @FocusState private var isFocused: Bool
     @State private var columnCount = 1
 
@@ -33,8 +32,7 @@ struct FileGridView: View {
                     FileTile(
                         item: item,
                         isSelected: model.selection.contains(item.id),
-                        model: model,
-                        showInspector: $showInspector
+                        model: model
                     )
                 }
             }
@@ -52,7 +50,7 @@ struct FileGridView: View {
             isFocused = true
         }
         .contextMenu {
-            ItemContextMenu(model: model, ids: [], showInspector: $showInspector)
+            ItemContextMenu(model: model, ids: [])
         }
         .focusable()
         .focusEffectDisabled()
@@ -81,7 +79,6 @@ private struct FileTile: View {
     let item: BrowserItem
     let isSelected: Bool
     let model: BrowserModel
-    @Binding var showInspector: Bool
     @State private var isTargeted = false
 
     var body: some View {
@@ -134,8 +131,7 @@ private struct FileTile: View {
         .contextMenu {
             ItemContextMenu(
                 model: model,
-                ids: isSelected ? model.selection : [item.id],
-                showInspector: $showInspector
+                ids: isSelected ? model.selection : [item.id]
             )
         }
         .dropDestination(for: URL.self) { urls, _ in

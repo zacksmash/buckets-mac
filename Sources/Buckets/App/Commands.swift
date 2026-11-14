@@ -13,7 +13,6 @@ struct AppCommands: Commands {
     @FocusedValue(\.newConnectionAction) private var newConnection
     @FocusedValue(\.browserModel) private var browser
     @Environment(\.openWindow) private var openWindow
-    @AppStorage("browserViewMode") private var viewMode: BrowserViewMode = .list
 
     var body: some Commands {
         SidebarCommands()
@@ -55,7 +54,10 @@ struct AppCommands: Commands {
         }
 
         CommandGroup(before: .toolbar) {
-            Picker("View", selection: $viewMode) {
+            Picker("View", selection: Binding(
+                get: { browser?.viewMode ?? .list },
+                set: { browser?.viewMode = $0 }
+            )) {
                 Text("as List").tag(BrowserViewMode.list)
                     .keyboardShortcut("1")
                 Text("as Icons").tag(BrowserViewMode.grid)
@@ -63,6 +65,15 @@ struct AppCommands: Commands {
             }
             .pickerStyle(.inline)
             .disabled(browser == nil)
+
+            if let browser {
+                Menu("Sort By") {
+                    SortMenu(model: browser)
+                }
+            } else {
+                Menu("Sort By") {}
+                    .disabled(true)
+            }
 
             Divider()
 

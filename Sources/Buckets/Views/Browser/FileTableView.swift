@@ -3,7 +3,6 @@ import SwiftUI
 /// Finder-style list view.
 struct FileTableView: View {
     @Bindable var model: BrowserModel
-    @Binding var showInspector: Bool
 
     var body: some View {
         Table(of: BrowserItem.self, selection: $model.selection, sortOrder: $model.sortOrder) {
@@ -50,7 +49,7 @@ struct FileTableView: View {
         }
         .tableStyle(.inset(alternatesRowBackgrounds: false))
         .contextMenu(forSelectionType: BrowserItem.ID.self) { ids in
-            ItemContextMenu(model: model, ids: ids, showInspector: $showInspector)
+            ItemContextMenu(model: model, ids: ids)
         } primaryAction: { ids in
             let items = model.items(for: ids)
             if items.count == 1, let item = items.first {
