@@ -13,7 +13,12 @@ struct FileTableView: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
                 .help(item.displayPath)
+                // Drag-out lives on the name cell, not the row: a row item provider takes over the
+                // table's drag handling and Finder files can no longer be dropped on the list.
+                .onDrag { model.dragItemProvider(for: item) ?? NSItemProvider() }
             }
             .width(min: 160)
 
@@ -41,7 +46,6 @@ struct FileTableView: View {
         } rows: {
             ForEach(model.displayedItems) { item in
                 TableRow(item)
-                    .itemProvider { model.dragItemProvider(for: item) }
                     .dropDestination(for: URL.self) { urls in
                         model.upload(urls, into: item.isFolder ? item.key : model.prefix)
                     }
