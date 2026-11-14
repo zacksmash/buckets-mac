@@ -484,7 +484,8 @@ final class S3Client: @unchecked Sendable {
                 query: [("uploadId", uploadID)],
                 payloadHash: SigV4Signer.emptyPayloadHash
             ) {
-                _ = try? await perform(abort)
+                // Detached so a cancelled transfer doesn't cancel its own abort request.
+                await Task.detached { [self] in _ = try? await perform(abort) }.value
             }
             throw error
         }
