@@ -23,7 +23,7 @@ enum Keychain {
             var item = query
             item[kSecValueData as String] = data
             item[kSecAttrLabel as String] = "Buckets – Secret Access Key"
-            item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
+            item[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked
             let status = SecItemAdd(item as CFDictionary, nil)
             guard status == errSecSuccess else { throw KeychainError(status: status) }
         }
