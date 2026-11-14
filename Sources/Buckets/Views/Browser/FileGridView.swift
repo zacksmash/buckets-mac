@@ -80,6 +80,12 @@ private struct FileTile: View {
     let isSelected: Bool
     let model: BrowserModel
     @State private var isTargeted = false
+    @Environment(\.controlActiveState) private var controlActiveState
+
+    /// Finder greys the selection when the window isn't key.
+    private var selectionColor: Color {
+        controlActiveState == .key ? .accentColor : Color(nsColor: .unemphasizedSelectedContentBackgroundColor)
+    }
 
     var body: some View {
         VStack(spacing: 6) {
@@ -104,10 +110,10 @@ private struct FileTile: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 5)
                 .padding(.vertical, 1)
-                .foregroundStyle(isSelected ? Color.white : Color.primary)
+                .foregroundStyle(isSelected && controlActiveState == .key ? Color.white : Color.primary)
                 .background {
                     RoundedRectangle(cornerRadius: 4, style: .continuous)
-                        .fill(isSelected ? Color.accentColor : .clear)
+                        .fill(isSelected ? selectionColor : .clear)
                 }
                 .frame(maxWidth: 112)
 

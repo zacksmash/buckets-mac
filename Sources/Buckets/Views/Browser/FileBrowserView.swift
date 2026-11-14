@@ -90,14 +90,7 @@ struct FileBrowserView: View {
                 .controlSize(.large)
             }
         } else if model.items.isEmpty && (model.isLoading || model.state == .idle) {
-            VStack(spacing: 12) {
-                ProgressView()
-                    .controlSize(.regular)
-                Text("Loading…")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            DelayedLoadingView()
         } else if model.items.isEmpty {
             EmptyFolderView(
                 folderName: model.currentFolderName,
@@ -291,6 +284,27 @@ private struct BrowserToolbar: ToolbarContent {
                 Label("Inspector", systemImage: "info.circle")
             }
             .help("Show or hide the inspector (⌘I)")
+        }
+    }
+}
+
+/// Waits a moment before showing a spinner, so quick listings don't flash one.
+private struct DelayedLoadingView: View {
+    @State private var isVisible = false
+
+    var body: some View {
+        VStack(spacing: 12) {
+            ProgressView()
+                .controlSize(.regular)
+            Text("Loading…")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+        }
+        .opacity(isVisible ? 1 : 0)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .task {
+            try? await Task.sleep(for: .milliseconds(300))
+            withAnimation(.easeIn(duration: 0.15)) { isVisible = true }
         }
     }
 }
