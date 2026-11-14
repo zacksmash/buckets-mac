@@ -253,6 +253,14 @@ final class S3Client: @unchecked Sendable {
         } while token != nil
     }
 
+    /// Like `forEachPage`, but skips the "/" folder markers, so `body` only sees real files.
+    func forEachFilePage(under prefix: String, _ body: ([S3Object]) async throws -> Void) async throws {
+        try await forEachPage(prefix: prefix) { objects in
+            let files = objects.filter { !$0.key.hasSuffix("/") }
+            if !files.isEmpty { try await body(files) }
+        }
+    }
+
     /// Lightweight check used by "Test Connection". Returns the number of top-level entries seen.
     func testConnection() async throws -> (count: Int, hasMore: Bool) {
         let page = try await listPage(prefix: "", delimiter: "/", maxKeys: 100)

@@ -115,9 +115,13 @@ extension BrowserModel {
     }
 
     func folderStatistics(_ item: BrowserItem) async throws -> (files: Int, bytes: Int64) {
-        let contents = try await requireClient().list(prefix: item.key, delimiter: nil)
-        let files = contents.objects.filter { !$0.key.hasSuffix("/") }
-        return (files.count, files.reduce(Int64(0)) { $0 + $1.size })
+        var count = 0
+        var bytes: Int64 = 0
+        try await requireClient().forEachFilePage(under: item.key) { files in
+            count += files.count
+            bytes += files.reduce(Int64(0)) { $0 + $1.size }
+        }
+        return (count, bytes)
     }
 
     func thumbnail(for item: BrowserItem, maxPixelSize: CGFloat = 256) async -> NSImage? {

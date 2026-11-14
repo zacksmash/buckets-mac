@@ -225,3 +225,29 @@ final class TransferManager {
         }
     }
 }
+
+/// Folds the progress of many files into one running total for a folder transfer.
+struct BatchProgress {
+    let total: Int64
+    private let report: @Sendable (Int64, Int64) -> Void
+    private var completed: Int64 = 0
+
+    init(total: Int64, report: @escaping @Sendable (Int64, Int64) -> Void) {
+        self.total = max(total, 1)
+        self.report = report
+        report(0, self.total)
+    }
+
+    /// Runs one file's transfer; `body` reports that file's own bytes done.
+    mutating func run(size: Int64, _ body: (@escaping @Sendable (Int64) -> Void) async throws -> Void) async throws {
+        try Task.checkCancellation()
+        let base = completed, total = total, report = report
+        try await body { done in report(base + done, total) }
+        skip(size)
+    }
+
+    mutating func skip(_ size: Int64) {
+        completed += size
+        report(completed, total)
+    }
+}

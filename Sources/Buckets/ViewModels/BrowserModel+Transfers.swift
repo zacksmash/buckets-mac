@@ -62,18 +62,14 @@ extension BrowserModel {
                         files.append((fileURL, root + relative, Int64(values?.fileSize ?? 0)))
                     }
                 }
-                let total = max(files.reduce(Int64(0)) { $0 + $1.size }, 1)
-                progress(0, total)
+                var batch = BatchProgress(total: files.reduce(Int64(0)) { $0 + $1.size }, report: progress)
                 try await client.createFolder(root)
-                var completed: Int64 = 0
                 for file in files {
-                    try Task.checkCancellation()
-                    let base = completed
-                    try await client.uploadFile(
-                        file.url, to: file.key, contentType: MIME.type(forFileName: file.url.lastPathComponent)
-                    ) { sent, _ in progress(base + sent, total) }
-                    completed += file.size
-                    progress(completed, total)
+                    try await batch.run(size: file.size) { fileProgress in
+                        try await client.uploadFile(
+                            file.url, to: file.key, contentType: MIME.type(forFileName: file.url.lastPathComponent)
+                        ) { sent, _ in fileProgress(sent) }
+                    }
                 }
             },
             onFinish: { [weak self] _ in
@@ -124,28 +120,29 @@ extension BrowserModel {
             totalBytes: 0,
             localURL: destination,
             operation: { progress in
-                let contents = try await client.list(prefix: item.key, delimiter: nil)
-                let files = contents.objects.filter { !$0.key.hasSuffix("/") }
-                let total = max(files.reduce(Int64(0)) { $0 + $1.size }, 1)
-                progress(0, total)
+                // A first pass sizes the folder so progress is accurate; neither pass holds the whole listing.
+                var total: Int64 = 0
+                try await client.forEachFilePage(under: item.key) { files in
+                    total += files.reduce(Int64(0)) { $0 + $1.size }
+                }
+                var batch = BatchProgress(total: total, report: progress)
                 try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
-                var completed: Int64 = 0
                 var skipped: [String] = []
-                for object in files {
-                    try Task.checkCancellation()
-                    let relative = String(object.key.dropFirst(item.key.count))
-                    guard let target = LocalFiles.safeURL(for: relative, in: destination) else {
-                        skipped.append(object.key)
-                        completed += object.size
-                        continue
+                try await client.forEachFilePage(under: item.key) { files in
+                    for object in files {
+                        let relative = String(object.key.dropFirst(item.key.count))
+                        guard let target = LocalFiles.safeURL(for: relative, in: destination) else {
+                            skipped.append(object.key)
+                            batch.skip(object.size)
+                            continue
+                        }
+                        // Replacing is safe here: the target is checked to sit inside our own new folder.
+                        try await batch.run(size: object.size) { fileProgress in
+                            try await client.download(object.key, to: target, replaceExisting: true) { received, _ in
+                                fileProgress(received)
+                            }
+                        }
                     }
-                    let base = completed
-                    // Replacing is safe here: the target is checked to sit inside our own new folder.
-                    try await client.download(object.key, to: target, replaceExisting: true) { received, _ in
-                        progress(base + received, total)
-                    }
-                    completed += object.size
-                    progress(completed, total)
                 }
                 if !skipped.isEmpty {
                     throw DownloadError.unsafeKeys(skipped)
