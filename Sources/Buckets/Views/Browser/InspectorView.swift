@@ -40,7 +40,7 @@ private struct ItemInspector: View {
         VStack(alignment: .leading, spacing: 18) {
             preview
                 .frame(maxWidth: .infinity)
-                .frame(height: 170)
+                .frame(height: previewImage != nil || previewText != nil ? 170 : 96)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.name)
@@ -145,7 +145,7 @@ private struct ItemInspector: View {
             )
             .transition(.opacity)
         } else {
-            FileIconView(item: item, size: 120)
+            FileIconView(item: item, size: 88)
         }
     }
 
@@ -188,13 +188,9 @@ private struct ItemInspector: View {
     private func loadDetails() async {
         guard !item.isFolder else { return }
         metadata = try? await model.metadata(for: item)
-        if item.isImage, item.size <= 30_000_000,
-           let data = try? await model.previewData(for: item) {
-            imageSize = Thumbnailer.pixelSize(of: data)
-            let image = await Task.detached(priority: .userInitiated) {
-                Thumbnailer.thumbnail(from: data, maxPixelSize: 900)
-            }.value
-            withAnimation(.easeOut(duration: 0.2)) { previewImage = image }
+        if item.hasThumbnail, let thumbnail = await model.thumbnail(for: item) {
+            imageSize = thumbnail.pixelSize
+            withAnimation(.easeOut(duration: 0.2)) { previewImage = thumbnail.image }
         } else if item.isTextEditable, item.size > 0,
                   let data = try? await model.previewData(for: item, maxBytes: 6_000) {
             let text = String(decoding: data, as: UTF8.self)

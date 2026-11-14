@@ -30,7 +30,7 @@ final class BrowserModel {
     let transfers: TransferManager
     let onHome: () -> Void
     let onEditConnection: () -> Void
-    let thumbnailCache = NSCache<NSString, NSImage>()
+    let thumbnailCache = NSCache<NSString, Thumbnail>()
 
     @ObservationIgnored var client: S3Client?
     @ObservationIgnored private var loadTask: Task<Void, Never>?
@@ -86,7 +86,7 @@ final class BrowserModel {
         self.transfers = transfers
         self.onHome = onHome
         self.onEditConnection = onEditConnection
-        thumbnailCache.countLimit = 400
+        thumbnailCache.totalCostLimit = 200_000_000
     }
 
     /// Creates the client lazily so throwaway models built during view updates stay cheap.

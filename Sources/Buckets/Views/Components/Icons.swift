@@ -133,7 +133,7 @@ struct FileIconView: View {
     }
 }
 
-/// Image thumbnail with a Finder-style white border; falls back to the type icon.
+/// Quick Look thumbnail with a Finder-style white border; falls back to the type icon.
 struct ThumbnailView: View {
     let item: BrowserItem
     let model: BrowserModel
@@ -159,9 +159,9 @@ struct ThumbnailView: View {
             }
         }
         .task(id: item.etag ?? item.key) {
-            guard item.isImage else { return }
-            let loaded = await model.thumbnail(for: item, maxPixelSize: size * 3)
-            withAnimation(.easeOut(duration: 0.2)) { image = loaded }
+            guard item.hasThumbnail else { return }
+            let loaded = await model.thumbnail(for: item)
+            withAnimation(.easeOut(duration: 0.2)) { image = loaded?.image }
         }
     }
 }

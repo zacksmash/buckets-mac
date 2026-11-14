@@ -1,3 +1,4 @@
+import QuickLookThumbnailing
 import AppKit
 import ImageIO
 import UniformTypeIdentifiers
@@ -32,25 +33,40 @@ enum FileIcons {
     }
 }
 
-enum Thumbnailer {
-    /// Downsamples image data efficiently with ImageIO.
-    static func thumbnail(from data: Data, maxPixelSize: CGFloat) -> NSImage? {
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
-        let options: [CFString: Any] = [
-            kCGImageSourceCreateThumbnailFromImageAlways: true,
-            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize,
-            kCGImageSourceCreateThumbnailWithTransform: true,
-        ]
-        guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
-        return NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
+/// A generated preview, plus the original pixel size for images.
+final class Thumbnail {
+    let image: NSImage
+    let pixelSize: CGSize?
+
+    init(image: NSImage, pixelSize: CGSize?) {
+        self.image = image
+        self.pixelSize = pixelSize
     }
 
-    static func pixelSize(of data: Data) -> CGSize? {
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
-              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
-              let width = properties[kCGImagePropertyPixelWidth] as? Int,
-              let height = properties[kCGImagePropertyPixelHeight] as? Int
-        else { return nil }
-        return CGSize(width: width, height: height)
+    /// Rough memory cost for NSCache.
+    var cost: Int { Int(image.size.width * image.size.height * 4) }
+
+    static let maxPixelSize: CGFloat = 512
+
+    static var temporaryRoot: URL {
+        FileManager.default.temporaryDirectory.appendingPathComponent("Buckets/Thumbnails", isDirectory: true)
+    }
+
+    static func generate(from file: URL, isImage: Bool) async throws -> Thumbnail {
+        let request = QLThumbnailGenerator.Request(
+            fileAt: file,
+            size: CGSize(width: maxPixelSize, height: maxPixelSize),
+            scale: 1,
+            representationTypes: .thumbnail
+        )
+        let representation = try await QLThumbnailGenerator.shared.generateBestRepresentation(for: request)
+        var pixelSize: CGSize?
+        if isImage, let source = CGImageSourceCreateWithURL(file as CFURL, nil),
+           let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+           let width = properties[kCGImagePropertyPixelWidth] as? Int,
+           let height = properties[kCGImagePropertyPixelHeight] as? Int {
+            pixelSize = CGSize(width: width, height: height)
+        }
+        return Thumbnail(image: representation.nsImage, pixelSize: pixelSize)
     }
 }

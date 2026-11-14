@@ -88,7 +88,6 @@ extension BrowserModel {
         } catch S3Error.http(412) {
             throw SaveError.changedOnServer(document.item.name)
         }
-        thumbnailCache.removeObject(forKey: document.item.key as NSString)
         reload()
     }
 
@@ -124,15 +123,22 @@ extension BrowserModel {
         return (count, bytes)
     }
 
-    func thumbnail(for item: BrowserItem, maxPixelSize: CGFloat = 256) async -> NSImage? {
-        let cacheKey = item.key as NSString
+    /// A Quick Look thumbnail for images, PDFs and videos, cached in memory by key and ETag.
+    /// The object is downloaded to a temporary file first, so only files up to 50 MB get one.
+    func thumbnail(for item: BrowserItem) async -> Thumbnail? {
+        let cacheKey = "\(item.key)|\(item.etag ?? "")" as NSString
         if let cached = thumbnailCache.object(forKey: cacheKey) { return cached }
-        guard item.isImage, item.size > 0, item.size <= 8_000_000, let client else { return nil }
-        guard let data = try? await client.getObjectData(item.key) else { return nil }
-        let image = await Task.detached(priority: .utility) {
-            Thumbnailer.thumbnail(from: data, maxPixelSize: maxPixelSize)
-        }.value
-        if let image { thumbnailCache.setObject(image, forKey: cacheKey) }
-        return image
+        guard item.hasThumbnail, item.size > 0, item.size <= 50_000_000, let client else { return nil }
+        let folder = Thumbnail.temporaryRoot.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        guard let file = LocalFiles.safeURL(for: item.name, in: folder) else { return nil }
+        defer { try? FileManager.default.removeItem(at: folder) }
+        do {
+            try await client.download(item.key, to: file) { _, _ in }
+            let thumbnail = try await Thumbnail.generate(from: file, isImage: item.isImage)
+            thumbnailCache.setObject(thumbnail, forKey: cacheKey, cost: thumbnail.cost)
+            return thumbnail
+        } catch {
+            return nil
+        }
     }
 }

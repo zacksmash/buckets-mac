@@ -35,6 +35,11 @@ struct BrowserItem: Identifiable, Hashable, Sendable {
         !isFolder && contentType.conforms(to: .image) && fileExtension != "svg"
     }
 
+    /// Quick Look can draw a real preview: images, PDFs and videos.
+    var hasThumbnail: Bool {
+        isImage || (!isFolder && (contentType.conforms(to: .pdf) || contentType.conforms(to: .movie)))
+    }
+
     private static let editableExtensions: Set<String> = [
         "txt", "text", "md", "markdown", "json", "jsonc", "json5", "yml", "yaml", "toml", "ini", "cfg",
         "conf", "env", "csv", "tsv", "log", "xml", "plist", "html", "htm", "css", "scss", "less",

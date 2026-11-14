@@ -21,6 +21,7 @@ enum Main {
         // Leftover Quick Look copies from earlier runs.
         try? FileManager.default.removeItem(at: BrowserModel.quickLookRoot)
         try? FileManager.default.removeItem(at: DraggedObject.temporaryRoot)
+        try? FileManager.default.removeItem(at: Thumbnail.temporaryRoot)
         BucketsApp.main()
     }
 }
