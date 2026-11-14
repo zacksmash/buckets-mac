@@ -31,8 +31,17 @@ struct TransfersButton: View {
                     Image(systemName: "arrow.up.arrow.down.circle")
                 }
             }
+            .overlay(alignment: .topTrailing) {
+                if transfers.hasFailed {
+                    Circle()
+                        .fill(.red)
+                        .frame(width: 7, height: 7)
+                        .offset(x: 3, y: -2)
+                        .accessibilityLabel("A transfer failed")
+                }
+            }
         }
-        .help("Show Transfers")
+        .help(transfers.hasFailed ? "Show Transfers. Some transfers failed." : "Show Transfers")
         .popover(isPresented: $isPresented, arrowEdge: .bottom) {
             TransfersPopover(transfers: transfers)
         }

@@ -123,6 +123,9 @@ final class TransferManager {
     var activeTransfers: [Transfer] { transfers.filter(\.isActive) }
     var hasActive: Bool { transfers.contains(where: \.isActive) }
     var hasFinished: Bool { transfers.contains { !$0.isActive } }
+    var hasFailed: Bool {
+        transfers.contains { if case .failed = $0.state { true } else { false } }
+    }
 
     var overallProgress: Double {
         let active = activeTransfers

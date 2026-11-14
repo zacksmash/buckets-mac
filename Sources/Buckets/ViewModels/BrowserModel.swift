@@ -453,15 +453,21 @@ final class BrowserModel {
         errorMessage = error.localizedDescription
     }
 
+    /// For failures that change nothing, like a preview that couldn't download.
+    func notify(_ error: Error) {
+        guard !isCancellation(error) else { return }
+        showToast(error.localizedDescription, isError: true)
+    }
+
     private func validatedName(_ raw: String) -> String? {
         let name = raw.trimmed
         guard !name.isEmpty else { return nil }
         if name.contains("/") {
-            errorMessage = "Names can't contain “/”."
+            showToast("Names can't contain “/”.", isError: true)
             return nil
         }
         if name == "." || name == ".." {
-            errorMessage = "“\(name)” isn't a valid name."
+            showToast("“\(name)” isn't a valid name.", isError: true)
             return nil
         }
         return name
@@ -471,7 +477,7 @@ final class BrowserModel {
         guard let name = validatedName(raw) else { return }
         let key = prefix + name + "/"
         if items.contains(where: { $0.key == key }) {
-            errorMessage = "A folder named “\(name)” already exists here."
+            showToast("A folder named “\(name)” already exists here.", isError: true)
             return
         }
         do {
@@ -490,7 +496,7 @@ final class BrowserModel {
         guard let name = validatedName(raw) else { return }
         let key = prefix + name
         if items.contains(where: { $0.key == key }) {
-            errorMessage = "A file named “\(name)” already exists here."
+            showToast("A file named “\(name)” already exists here.", isError: true)
             return
         }
         do {
@@ -552,7 +558,7 @@ final class BrowserModel {
         let parent = String(item.key.dropLast(item.isFolder ? item.name.count + 1 : item.name.count))
         let newKey = parent + name + (item.isFolder ? "/" : "")
         if items.contains(where: { $0.key == newKey }) {
-            errorMessage = "An item named “\(name)” already exists here."
+            showToast("An item named “\(name)” already exists here.", isError: true)
             return
         }
         busyMessage = "Renaming “\(item.name)”…"

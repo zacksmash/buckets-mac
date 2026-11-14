@@ -18,7 +18,7 @@ extension BrowserModel {
         guard let destination = LocalFiles.safeURL(for: item.name, in: folder),
               destination.deletingLastPathComponent().standardizedFileURL == folder.standardizedFileURL
         else {
-            errorMessage = "“\(item.name)” can't be previewed because its name isn't safe to save on this Mac."
+            showToast("“\(item.name)” can't be previewed because its name isn't safe to save on this Mac.", isError: true)
             return
         }
         busyMessage = "Preparing preview…"
@@ -28,7 +28,7 @@ extension BrowserModel {
                 try await client.download(item.key, to: destination) { _, _ in }
                 quickLookURL = destination
             } catch {
-                present(error)
+                notify(error)
             }
         }
     }
@@ -36,7 +36,7 @@ extension BrowserModel {
     func edit(_ item: BrowserItem) {
         guard let client else { return }
         guard item.size <= 10_000_000 else {
-            errorMessage = "“\(item.name)” is too large to edit here (\(Format.bytes(item.size))). Download it instead."
+            showToast("“\(item.name)” is too large to edit here (\(Format.bytes(item.size))). Download it instead.", isError: true)
             return
         }
         busyMessage = "Opening “\(item.name)”…"
@@ -55,7 +55,7 @@ extension BrowserModel {
                     text = latin
                     encoding = .isoLatin1
                 } else {
-                    errorMessage = "“\(item.name)” doesn't look like a text file."
+                    showToast("“\(item.name)” doesn't look like a text file.", isError: true)
                     return
                 }
                 editingDocument = TextDocument(
@@ -68,7 +68,7 @@ extension BrowserModel {
                     editETags[document.id] = metadata?.etag ?? item.etag
                 }
             } catch {
-                present(error)
+                notify(error)
             }
         }
     }

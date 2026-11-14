@@ -222,7 +222,7 @@ private struct BrowserToolbar: ToolbarContent {
             .controlGroupStyle(.navigation)
         }
 
-        ToolbarItem(placement: .primaryAction) {
+        ToolbarItemGroup(placement: .primaryAction) {
             Picker("View", selection: $model.viewMode) {
                 Label("List", systemImage: "list.bullet").tag(BrowserViewMode.list)
                 Label("Icons", systemImage: "square.grid.2x2").tag(BrowserViewMode.grid)
@@ -230,16 +230,21 @@ private struct BrowserToolbar: ToolbarContent {
             .pickerStyle(.segmented)
             .labelStyle(.iconOnly)
             .help("Change the item arrangement")
-        }
 
-        ToolbarItem(placement: .primaryAction) {
             Menu {
-                SortMenu(model: model)
+                Menu("Sort By") {
+                    SortMenu(model: model)
+                }
+                Divider()
+                Button("New Text File…") { model.requestNewFile() }
+                Divider()
+                Button("Delete…", role: .destructive) { model.requestDelete(model.selection) }
+                    .disabled(model.selection.isEmpty)
             } label: {
-                Label("Sort By", systemImage: "arrow.up.arrow.down")
+                Label("More", systemImage: "ellipsis")
             }
             .menuIndicator(.hidden)
-            .help("Change how items are sorted")
+            .help("Sort, create a text file, or delete")
         }
 
         ToolbarSpacer(.fixed, placement: .primaryAction)
@@ -258,11 +263,7 @@ private struct BrowserToolbar: ToolbarContent {
                 Label("Upload", systemImage: "arrow.up.doc")
             }
             .help("Upload Files (⌘U)")
-        }
 
-        ToolbarSpacer(.fixed, placement: .primaryAction)
-
-        ToolbarItemGroup(placement: .primaryAction) {
             Button {
                 model.downloadSelection()
             } label: {
@@ -270,14 +271,6 @@ private struct BrowserToolbar: ToolbarContent {
             }
             .disabled(model.selection.isEmpty)
             .help("Download to your Downloads folder (⌥⌘D)")
-
-            Button {
-                model.requestDelete(model.selection)
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
-            .disabled(model.selection.isEmpty)
-            .help("Delete (⌘⌫)")
         }
 
         ToolbarSpacer(.fixed, placement: .primaryAction)

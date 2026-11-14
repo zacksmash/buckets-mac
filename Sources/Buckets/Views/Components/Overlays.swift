@@ -57,7 +57,7 @@ struct ToastCapsule: View {
                 .foregroundStyle(toast.isError ? Color.orange : Color.green)
             Text(toast.message)
                 .font(.callout.weight(.medium))
-                .lineLimit(2)
+                .lineLimit(3)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
