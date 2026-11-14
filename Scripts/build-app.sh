@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Builds Buckets.app into ./build. Usage: Scripts/build-app.sh [debug|release]
+# Set SIGN_IDENTITY to sign with a certificate (and the hardened runtime) instead of ad hoc.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -23,7 +24,12 @@ cp "$BIN_DIR/Buckets" "$APP/Contents/MacOS/Buckets"
 cp Support/Info.plist "$APP/Contents/Info.plist"
 cp build/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
-echo "▸ Signing (ad hoc)…"
-codesign --force --sign - --timestamp=none "$APP" >/dev/null
+if [[ -n "${SIGN_IDENTITY:-}" ]]; then
+    echo "▸ Signing ($SIGN_IDENTITY)…"
+    codesign --force --sign "$SIGN_IDENTITY" --options runtime --timestamp "$APP" >/dev/null
+else
+    echo "▸ Signing (ad hoc)…"
+    codesign --force --sign - --timestamp=none "$APP" >/dev/null
+fi
 
 echo "✓ Built $(pwd)/$APP"

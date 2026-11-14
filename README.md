@@ -49,6 +49,8 @@ Save a **connection** for each bucket, then open it in a Finder-style browser. B
 >   xattr -dr com.apple.quarantine /Applications/Buckets.app
 >   ```
 >
+> Release builds are signed ad hoc, so after an update macOS may ask once more before Buckets can read its keys from the Keychain. Click **Always Allow** and it won't ask again until the next update.
+>
 > If Buckets earns a spot in your day and you'd like it to open without any of this, [**sponsoring me on GitHub**](https://github.com/sponsors/zacksmash) goes straight toward the developer account that makes notarized releases possible. 💛
 
 ### Build from source
@@ -63,7 +65,7 @@ cp -R build/Buckets.app /Applications/
 open /Applications/Buckets.app
 ```
 
-The script compiles a release build, renders the app icon and signs the app ad hoc. For development, `open Package.swift` in Xcode and run the `Buckets` scheme, or use `swift run`.
+The script compiles a release build, renders the app icon and signs the app ad hoc. If you have a signing certificate, set `SIGN_IDENTITY` (for example `SIGN_IDENTITY="Developer ID Application: …" Scripts/build-app.sh`) to sign with it and the hardened runtime instead. For development, `open Package.swift` in Xcode and run the `Buckets` scheme, or use `swift run`.
 
 ## Usage
 
