@@ -47,7 +47,18 @@ final class BrowserModel {
     var errorMessage: String?
     /// ETag each open text document was loaded at, sent as If-Match on save.
     @ObservationIgnored private var editETags: [UUID: String] = [:]
-    var quickLookURL: URL?
+    var quickLookURL: URL? {
+        didSet {
+            // Each preview downloads into its own UUID folder; drop it once the preview closes or changes.
+            if let oldValue, oldValue != quickLookURL {
+                try? FileManager.default.removeItem(at: oldValue.deletingLastPathComponent())
+            }
+        }
+    }
+
+    static var quickLookRoot: URL {
+        FileManager.default.temporaryDirectory.appendingPathComponent("Buckets/QuickLook", isDirectory: true)
+    }
     var editingDocument: TextDocument?
 
     // Prompts presented by the view.
@@ -688,8 +699,7 @@ final class BrowserModel {
 
     func quickLook(_ item: BrowserItem) {
         guard !item.isFolder, let client else { return }
-        let folder = FileManager.default.temporaryDirectory
-            .appendingPathComponent("Buckets/QuickLook/\(UUID().uuidString)", isDirectory: true)
+        let folder = Self.quickLookRoot.appendingPathComponent(UUID().uuidString, isDirectory: true)
         guard let destination = Self.safeLocalURL(for: item.name, in: folder),
               destination.deletingLastPathComponent().standardizedFileURL == folder.standardizedFileURL
         else {

@@ -18,6 +18,8 @@ enum Main {
             }
             RunLoop.main.run()
         }
+        // Leftover Quick Look copies from earlier runs.
+        try? FileManager.default.removeItem(at: BrowserModel.quickLookRoot)
         BucketsApp.main()
     }
 }
