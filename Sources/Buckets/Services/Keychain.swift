@@ -4,7 +4,9 @@ import os
 
 /// Stores each connection's secret access key in the user's login keychain.
 enum Keychain {
-    private static let service = "com.maxconnect.Buckets.credentials"
+    private static let service = "com.zacksmash.Buckets.credentials"
+    /// Where secrets lived under the app's earlier bundle ID; moved over the first time they're read.
+    private static let legacyService = "com.maxconnect.Buckets.credentials"
 
     static func setSecret(_ secret: String, for id: UUID) throws {
         let data = Data(secret.utf8)
@@ -30,6 +32,13 @@ enum Keychain {
     }
 
     static func secret(for id: UUID) -> String? {
+        if let secret = read(service: service, id: id) { return secret }
+        guard let old = read(service: legacyService, id: id) else { return nil }
+        if (try? setSecret(old, for: id)) != nil { delete(service: legacyService, id: id) }
+        return old
+    }
+
+    private static func read(service: String, id: UUID) -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -44,6 +53,11 @@ enum Keychain {
     }
 
     static func deleteSecret(for id: UUID) {
+        delete(service: service, id: id)
+        delete(service: legacyService, id: id)
+    }
+
+    private static func delete(service: String, id: UUID) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -51,7 +65,7 @@ enum Keychain {
         ]
         let status = SecItemDelete(query as CFDictionary)
         if status != errSecSuccess, status != errSecItemNotFound {
-            Logger(subsystem: "com.maxconnect.Buckets", category: "Keychain")
+            Logger(subsystem: "com.zacksmash.Buckets", category: "Keychain")
                 .error("Couldn't delete a secret from the Keychain (status \(status, privacy: .public))")
         }
     }

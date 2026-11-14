@@ -22,7 +22,18 @@ enum Main {
         try? FileManager.default.removeItem(at: BrowserModel.quickLookRoot)
         try? FileManager.default.removeItem(at: DraggedObject.temporaryRoot)
         try? FileManager.default.removeItem(at: Thumbnail.temporaryRoot)
+        migrateLegacyDefaults()
         BucketsApp.main()
+    }
+
+    /// Settings saved under the app's earlier bundle ID (com.maxconnect.Buckets) come along once.
+    private static func migrateLegacyDefaults() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: "migratedLegacyDefaults"),
+              let old = UserDefaults(suiteName: "com.maxconnect.Buckets")?.persistentDomain(forName: "com.maxconnect.Buckets")
+        else { return }
+        for (key, value) in old where defaults.object(forKey: key) == nil { defaults.set(value, forKey: key) }
+        defaults.set(true, forKey: "migratedLegacyDefaults")
     }
 }
 

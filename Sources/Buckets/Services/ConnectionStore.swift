@@ -67,7 +67,7 @@ final class ConnectionStore {
         persist()
     }
 
-    private static let logger = Logger(subsystem: "com.maxconnect.Buckets", category: "ConnectionStore")
+    private static let logger = Logger(subsystem: "com.zacksmash.Buckets", category: "ConnectionStore")
 
     private func load() {
         guard let data = try? Data(contentsOf: fileURL) else { return }
