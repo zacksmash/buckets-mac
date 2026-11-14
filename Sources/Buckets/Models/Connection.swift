@@ -153,3 +153,26 @@ struct Connection: Identifiable, Codable, Hashable, Sendable {
     /// Identity of everything that affects how we talk to the server.
     var sessionIdentity: String { "\(id.uuidString)-\(revision)" }
 }
+
+extension Connection {
+    /// Tolerant decoding: a missing or unrecognised field falls back to its default
+    /// instead of failing the whole connections file.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let defaults = Connection()
+        id = (try? container.decodeIfPresent(UUID.self, forKey: .id)) ?? defaults.id
+        name = (try? container.decodeIfPresent(String.self, forKey: .name)) ?? defaults.name
+        provider = (try? container.decodeIfPresent(StorageProvider.self, forKey: .provider)) ?? defaults.provider
+        accountID = (try? container.decodeIfPresent(String.self, forKey: .accountID)) ?? defaults.accountID
+        jurisdiction = (try? container.decodeIfPresent(R2Jurisdiction.self, forKey: .jurisdiction)) ?? defaults.jurisdiction
+        customEndpoint = (try? container.decodeIfPresent(String.self, forKey: .customEndpoint)) ?? defaults.customEndpoint
+        region = (try? container.decodeIfPresent(String.self, forKey: .region)) ?? defaults.region
+        bucket = (try? container.decodeIfPresent(String.self, forKey: .bucket)) ?? defaults.bucket
+        accessKeyID = (try? container.decodeIfPresent(String.self, forKey: .accessKeyID)) ?? defaults.accessKeyID
+        tint = (try? container.decodeIfPresent(ConnectionTint.self, forKey: .tint)) ?? defaults.tint
+        symbol = (try? container.decodeIfPresent(String.self, forKey: .symbol)) ?? defaults.symbol
+        createdAt = (try? container.decodeIfPresent(Date.self, forKey: .createdAt)) ?? defaults.createdAt
+        lastOpenedAt = (try? container.decodeIfPresent(Date.self, forKey: .lastOpenedAt)) ?? nil
+        revision = (try? container.decodeIfPresent(Int.self, forKey: .revision)) ?? defaults.revision
+    }
+}
