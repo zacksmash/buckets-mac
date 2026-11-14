@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import CryptoKit
 import UniformTypeIdentifiers
 
@@ -82,5 +83,12 @@ enum Format {
             let hours = Int((seconds / 3600).rounded())
             return hours <= 1 ? "About an hour remaining" : "About \(hours) hours remaining"
         }
+    }
+}
+
+extension Binding where Value == Bool {
+    /// True while `optional` holds a value; setting false clears it. Drives alerts from optional state.
+    init<Wrapped>(isPresent optional: Binding<Wrapped?>) {
+        self.init(get: { optional.wrappedValue != nil }, set: { if !$0 { optional.wrappedValue = nil } })
     }
 }

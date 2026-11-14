@@ -144,7 +144,7 @@ private struct BrowserDialogs: ViewModifier {
             }
             .alert(
                 "Rename",
-                isPresented: Binding(get: { model.renameTarget != nil }, set: { if !$0 { model.renameTarget = nil } }),
+                isPresented: Binding(isPresent: $model.renameTarget),
                 presenting: model.renameTarget
             ) { item in
                 TextField("Name", text: $renameText)
@@ -171,7 +171,7 @@ private struct BrowserDialogs: ViewModifier {
             }
             .alert(
                 "Something Went Wrong",
-                isPresented: Binding(get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } })
+                isPresented: Binding(isPresent: $model.errorMessage)
             ) {
                 Button("OK", role: .cancel) {}
             } message: {

@@ -38,29 +38,7 @@ struct FileGridView: View {
         .focusEffectDisabled()
         .focused($isFocused)
         .onAppear { isFocused = true }
-        .onKeyPress(.space) {
-            model.toggleQuickLook()
-            return .handled
-        }
-        .onKeyPress(.return) {
-            guard model.selection.count == 1 else { return .ignored }
-            model.openSelection()
-            return .handled
-        }
-        .onKeyPress(.escape) {
-            model.selection = []
-            return .handled
-        }
-        .onKeyPress(keys: [.delete, .deleteForward]) { press in
-            guard press.modifiers.contains(.command) || press.key == .deleteForward else { return .ignored }
-            model.requestDelete(model.selection)
-            return .handled
-        }
-        .onKeyPress(characters: CharacterSet(charactersIn: "a")) { press in
-            guard press.modifiers.contains(.command) else { return .ignored }
-            model.selectAll()
-            return .handled
-        }
+        .browserKeyCommands(model)
     }
 }
 

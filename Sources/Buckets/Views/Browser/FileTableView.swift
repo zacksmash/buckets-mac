@@ -58,20 +58,7 @@ struct FileTableView: View {
                 model.download(ids)
             }
         }
-        .onKeyPress(.space) {
-            model.toggleQuickLook()
-            return .handled
-        }
-        .onKeyPress(.return) {
-            guard model.selection.count == 1 else { return .ignored }
-            model.openSelection()
-            return .handled
-        }
-        .onKeyPress(keys: [.delete, .deleteForward]) { press in
-            guard press.modifiers.contains(.command) || press.key == .deleteForward else { return .ignored }
-            model.requestDelete(model.selection)
-            return .handled
-        }
+        .browserKeyCommands(model)
         .onKeyPress(.downArrow, phases: .down) { press in
             guard press.modifiers.contains(.command) else { return .ignored }
             model.openSelection()

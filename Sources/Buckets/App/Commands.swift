@@ -2,24 +2,9 @@ import SwiftUI
 
 // MARK: - Focused values
 
-struct NewConnectionActionKey: FocusedValueKey {
-    typealias Value = () -> Void
-}
-
-struct BrowserModelKey: FocusedValueKey {
-    typealias Value = BrowserModel
-}
-
 extension FocusedValues {
-    var newConnectionAction: (() -> Void)? {
-        get { self[NewConnectionActionKey.self] }
-        set { self[NewConnectionActionKey.self] = newValue }
-    }
-
-    var browserModel: BrowserModel? {
-        get { self[BrowserModelKey.self] }
-        set { self[BrowserModelKey.self] = newValue }
-    }
+    @Entry var newConnectionAction: (() -> Void)?
+    @Entry var browserModel: BrowserModel?
 }
 
 // MARK: - Menu bar
