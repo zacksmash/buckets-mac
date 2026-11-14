@@ -94,6 +94,10 @@ struct ConnectionEditorView: View {
                         Text("Find your Account ID in the Cloudflare dashboard under **R2 Object Storage**. You can also paste the full S3 API URL.")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
+                    } else if draft.usesInsecureRemoteEndpoint {
+                        Label("This endpoint uses http://, so your files and request signatures travel unencrypted. Use https:// unless it's on your own network.", systemImage: "exclamationmark.triangle.fill")
+                            .font(.footnote)
+                            .foregroundStyle(.orange)
                     }
                 }
 

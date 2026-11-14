@@ -139,6 +139,13 @@ struct Connection: Identifiable, Codable, Hashable, Sendable {
         }
     }
 
+    /// True for plain-http custom endpoints that aren't on this Mac.
+    var usesInsecureRemoteEndpoint: Bool {
+        guard provider == .s3Compatible, let url = endpointURL, url.scheme?.lowercased() == "http" else { return false }
+        let host = (url.host ?? "").lowercased()
+        return !["localhost", "127.0.0.1", "::1", "[::1]"].contains(host)
+    }
+
     var signingRegion: String {
         switch provider {
         case .cloudflareR2: return "auto"
