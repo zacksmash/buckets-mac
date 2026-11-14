@@ -8,7 +8,23 @@ enum Keychain {
     /// Where secrets lived under the app's earlier bundle ID; moved over the first time they're read.
     private static let legacyService = "com.maxconnect.Buckets.credentials"
 
+    /// Secrets already read this run. Each Keychain read can ask the user for their password
+    /// (until they choose Always Allow), so ask once per connection, not on every bucket switch.
+    private static var cache: [UUID: String] = [:]
+    private static let cacheLock = NSLock()
+
+    private static func cached(_ id: UUID) -> String? {
+        cacheLock.lock(); defer { cacheLock.unlock() }
+        return cache[id]
+    }
+
+    private static func remember(_ secret: String?, for id: UUID) {
+        cacheLock.lock(); defer { cacheLock.unlock() }
+        cache[id] = secret
+    }
+
     static func setSecret(_ secret: String, for id: UUID) throws {
+        defer { remember(secret, for: id) }
         let data = Data(secret.utf8)
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -32,7 +48,8 @@ enum Keychain {
     }
 
     static func secret(for id: UUID) -> String? {
-        if let secret = read(service: service, id: id) { return secret }
+        if let secret = cached(id) { return secret }
+        if let secret = read(service: service, id: id) { remember(secret, for: id); return secret }
         guard let old = read(service: legacyService, id: id) else { return nil }
         if (try? setSecret(old, for: id)) != nil { delete(service: legacyService, id: id) }
         return old
@@ -53,6 +70,7 @@ enum Keychain {
     }
 
     static func deleteSecret(for id: UUID) {
+        remember(nil, for: id)
         delete(service: service, id: id)
         delete(service: legacyService, id: id)
     }
