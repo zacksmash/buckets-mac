@@ -18,10 +18,10 @@
 
 ## What it does
 
-Save a **connection** for each bucket, then open it in a Finder-style browser. Buckets is built in SwiftUI with macOS 26's Liquid Glass.
+Save a **connection** for each bucket, then open it in a Finder-style browser. Buckets is built in SwiftUI with macOS 26's Liquid Glass. Screenshots follow your light or dark setting.
 
 <p align="center">
-  <img src="docs/screenshots/03-browser-list.png" alt="Browsing a bucket in list view" width="100%">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-list.png"><img src="docs/screenshots/light-list.png" alt="Browsing a bucket in list view" width="100%"></picture>
 </p>
 
 - **Connections**: as many as you like, each with its own credentials, name, color and icon. Secret keys live in the Keychain.
@@ -31,12 +31,11 @@ Save a **connection** for each bucket, then open it in a Finder-style browser. B
 - **Edit text files** in place and save them back to the bucket.
 
 <p align="center">
-  <img src="docs/screenshots/02-connections.png" alt="Saved connections" width="49%">
-  <img src="docs/screenshots/04-browser-inspector.png" alt="Inspector" width="49%">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-home.png"><img src="docs/screenshots/light-home.png" alt="Saved connections" width="49%"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-inspector.png"><img src="docs/screenshots/light-inspector.png" alt="Inspector" width="49%"></picture>
 </p>
 <p align="center">
-  <img src="docs/screenshots/05-browser-icons.png" alt="Icon view" width="49%">
-  <img src="docs/screenshots/07-browser-light.png" alt="Light mode" width="49%">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-icons.png"><img src="docs/screenshots/light-icons.png" alt="Icon view" width="70%"></picture>
 </p>
 
 ## Install
@@ -69,7 +68,7 @@ The script compiles a release build, renders the app icon and signs the app ad h
 ## Usage
 
 <p align="center">
-  <img src="docs/screenshots/06b-new-connection-sheet.png" alt="New connection sheet" width="70%">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark-editor.png"><img src="docs/screenshots/light-editor.png" alt="New connection sheet" width="70%"></picture>
 </p>
 
 ### Connections
