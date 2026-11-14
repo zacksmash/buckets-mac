@@ -613,14 +613,25 @@ final class BrowserModel {
                 progress(0, total)
                 try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
                 var completed: Int64 = 0
+                var skipped: [String] = []
                 for object in files {
                     try Task.checkCancellation()
                     let relative = String(object.key.dropFirst(item.key.count))
-                    let target = destination.appendingPathComponent(relative)
+                    guard let target = Self.safeLocalURL(for: relative, in: destination) else {
+                        skipped.append(object.key)
+                        completed += object.size
+                        continue
+                    }
                     let base = completed
-                    try await client.download(object.key, to: target) { received, _ in progress(base + received, total) }
+                    // Replacing is safe here: the target is checked to sit inside our own new folder.
+                    try await client.download(object.key, to: target, replaceExisting: true) { received, _ in
+                        progress(base + received, total)
+                    }
                     completed += object.size
                     progress(completed, total)
+                }
+                if !skipped.isEmpty {
+                    throw DownloadError.unsafeKeys(skipped)
                 }
             },
             onFinish: { [weak self] success in
@@ -628,6 +639,31 @@ final class BrowserModel {
                 if success { Self.bounceDownloads(destination) }
             }
         )
+    }
+
+    /// Maps a key's path relative to a downloaded folder onto a local URL inside `folder`.
+    /// Returns nil for anything that could escape it ("." or ".." components, or no name at all).
+    nonisolated static func safeLocalURL(for relative: String, in folder: URL) -> URL? {
+        let components = relative.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
+        guard !components.isEmpty, !components.contains(where: { $0 == "." || $0 == ".." }) else { return nil }
+        let target = components.reduce(folder) { $0.appendingPathComponent($1) }.standardizedFileURL
+        let root = folder.standardizedFileURL.path
+        guard target.path.hasPrefix(root.hasSuffix("/") ? root : root + "/") else { return nil }
+        return target
+    }
+
+    enum DownloadError: LocalizedError {
+        case unsafeKeys([String])
+
+        var errorDescription: String? {
+            switch self {
+            case let .unsafeKeys(keys):
+                let sample = keys.prefix(3).map { "“\($0)”" }.joined(separator: ", ")
+                return keys.count == 1
+                    ? "Skipped \(sample) because its name isn't safe to save on this Mac."
+                    : "Skipped \(keys.count) files whose names aren't safe to save on this Mac, including \(sample)."
+            }
+        }
     }
 
     /// Makes the Downloads stack in the Dock bounce, like Safari.
@@ -652,7 +688,12 @@ final class BrowserModel {
         guard !item.isFolder, let client else { return }
         let folder = FileManager.default.temporaryDirectory
             .appendingPathComponent("Buckets/QuickLook/\(UUID().uuidString)", isDirectory: true)
-        let destination = folder.appendingPathComponent(item.name)
+        guard let destination = Self.safeLocalURL(for: item.name, in: folder),
+              destination.deletingLastPathComponent().standardizedFileURL == folder.standardizedFileURL
+        else {
+            errorMessage = "“\(item.name)” can't be previewed because its name isn't safe to save on this Mac."
+            return
+        }
         busyMessage = "Preparing preview…"
         Task {
             defer { busyMessage = nil }

@@ -342,6 +342,7 @@ final class S3Client: @unchecked Sendable {
     func download(
         _ key: String,
         to destination: URL,
+        replaceExisting: Bool = false,
         progress: @escaping @Sendable (Int64, Int64) -> Void
     ) async throws {
         let request = try makeRequest(method: "GET", key: key, payloadHash: SigV4Signer.emptyPayloadHash)
@@ -366,7 +367,7 @@ final class S3Client: @unchecked Sendable {
                     do {
                         let fileManager = FileManager.default
                         try fileManager.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
-                        if fileManager.fileExists(atPath: destination.path) {
+                        if replaceExisting, fileManager.fileExists(atPath: destination.path) {
                             try fileManager.removeItem(at: destination)
                         }
                         try fileManager.moveItem(at: location, to: destination)
