@@ -36,6 +36,13 @@ struct ItemContextMenu: View {
             }
             Button(items.count == 1 ? "Copy Path" : "Copy Paths") { model.copyPaths(ids) }
             Button(items.count == 1 ? "Copy S3 URI" : "Copy S3 URIs") { model.copyS3URIs(ids) }
+            if items.count == 1, let item = items.first, !item.isFolder {
+                Menu("Copy Share Link") {
+                    ForEach(BrowserModel.ShareLinkDuration.allCases) { duration in
+                        Button(duration.title) { model.copyShareLink(item, expiresIn: duration) }
+                    }
+                }
+            }
             Divider()
             Button(items.count == 1 ? "Delete…" : "Delete \(items.count) Items…", role: .destructive) {
                 model.requestDelete(ids)

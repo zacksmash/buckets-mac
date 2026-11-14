@@ -42,6 +42,16 @@ struct FileBrowserView: View {
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
+            .overlay(alignment: .bottom) {
+                if let toast = model.toast {
+                    ToastCapsule(toast: toast)
+                        .padding(.bottom, 42)
+                        .padding(.horizontal, 20)
+                        .id(toast.id)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .animation(.snappy, value: model.toast)
             .animation(.snappy(duration: 0.2), value: isDropTargeted)
             .animation(.snappy, value: model.busyMessage)
             .dropDestination(for: URL.self) { urls, _ in

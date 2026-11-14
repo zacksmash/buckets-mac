@@ -134,13 +134,7 @@ final class S3Client: @unchecked Sendable {
 
     // MARK: - Request construction
 
-    private func makeRequest(
-        method: String,
-        key: String? = nil,
-        query: [(String, String)] = [],
-        headers: [String: String] = [:],
-        payloadHash: String
-    ) throws -> URLRequest {
+    private func canonicalURI(for key: String?) -> String {
         var basePath = endpoint.path
         while basePath.hasSuffix("/") { basePath.removeLast() }
         var canonicalURI = SigV4Signer.uriEncode(basePath, encodeSlash: false)
@@ -148,28 +142,49 @@ final class S3Client: @unchecked Sendable {
         if let key {
             canonicalURI += "/" + SigV4Signer.uriEncode(key, encodeSlash: false)
         }
+        return canonicalURI
+    }
 
-        let encodedQuery: [(String, String)] = query.map { pair in
-            (SigV4Signer.uriEncode(pair.0, encodeSlash: true), SigV4Signer.uriEncode(pair.1, encodeSlash: true))
-        }
-        let sortedQuery = encodedQuery.sorted { (a: (String, String), b: (String, String)) -> Bool in
-            a.0 == b.0 ? a.1 < b.1 : a.0 < b.0
-        }
-        let canonicalQuery = sortedQuery.map { "\($0.0)=\($0.1)" }.joined(separator: "&")
-
+    private func url(path: String, query: String) throws -> URL {
         var components = URLComponents()
         components.scheme = endpoint.scheme ?? "https"
         components.host = endpoint.host
         components.port = endpoint.port
-        components.percentEncodedPath = canonicalURI
-        if !canonicalQuery.isEmpty { components.percentEncodedQuery = canonicalQuery }
+        components.percentEncodedPath = path
+        if !query.isEmpty { components.percentEncodedQuery = query }
         guard let url = components.url else { throw S3Error.invalidEndpoint }
+        return url
+    }
+
+    private func makeRequest(
+        method: String,
+        key: String? = nil,
+        query: [(String, String)] = [],
+        headers: [String: String] = [:],
+        payloadHash: String
+    ) throws -> URLRequest {
+        let canonicalURI = canonicalURI(for: key)
+        let canonicalQuery = SigV4Signer.canonicalQuery(query)
+        let url = try url(path: canonicalURI, query: canonicalQuery)
 
         var request = URLRequest(url: url)
         request.httpMethod = method
         for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
         signer.sign(&request, canonicalURI: canonicalURI, canonicalQuery: canonicalQuery, payloadHash: payloadHash)
         return request
+    }
+
+    /// SigV4 allows presigned URLs to last at most seven days.
+    static let maximumPresignDuration = 7 * 24 * 60 * 60
+
+    /// A URL anyone can use to GET `key` until it expires. Signed locally; no request is made.
+    func presignedURL(for key: String, expiresIn seconds: Int) throws -> URL {
+        let canonicalURI = canonicalURI(for: key)
+        let unsigned = try url(path: canonicalURI, query: "")
+        guard let query = signer.presignedQuery(
+            url: unsigned, canonicalURI: canonicalURI, expires: min(max(seconds, 1), Self.maximumPresignDuration)
+        ) else { throw S3Error.invalidEndpoint }
+        return try url(path: canonicalURI, query: query)
     }
 
     @discardableResult

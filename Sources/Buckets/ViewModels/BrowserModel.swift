@@ -7,6 +7,12 @@ enum BrowserViewMode: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+struct Toast: Equatable {
+    let id = UUID()
+    let message: String
+    let isError: Bool
+}
+
 struct TextDocument: Identifiable {
     let id = UUID()
     let item: BrowserItem
@@ -44,6 +50,9 @@ final class BrowserModel {
     var sortOrder: [KeyPathComparator<BrowserItem>] = [KeyPathComparator(\BrowserItem.name, comparator: .localizedStandard)]
 
     var busyMessage: String?
+    /// Short-lived note shown near the bottom of the window, like "Link Copied".
+    private(set) var toast: Toast?
+    @ObservationIgnored private var toastTask: Task<Void, Never>?
     var errorMessage: String?
     /// ETag each open text document was loaded at, sent as If-Match on save.
     @ObservationIgnored var editETags: [UUID: String] = [:]
@@ -501,7 +510,47 @@ final class BrowserModel {
         }
     }
 
+    // MARK: - Toasts
+
+    func showToast(_ message: String, isError: Bool = false) {
+        toast = Toast(message: message, isError: isError)
+        toastTask?.cancel()
+        toastTask = Task {
+            try? await Task.sleep(for: .seconds(isError ? 4 : 2))
+            guard !Task.isCancelled else { return }
+            toast = nil
+        }
+    }
+
     // MARK: - Pasteboard
+
+    enum ShareLinkDuration: Int, CaseIterable, Identifiable {
+        case hour = 3600
+        case day = 86400
+        case week = 604_800
+
+        var id: Int { rawValue }
+
+        var title: String {
+            switch self {
+            case .hour: "1 Hour"
+            case .day: "1 Day"
+            case .week: "7 Days"
+            }
+        }
+    }
+
+    func copyShareLink(_ item: BrowserItem, expiresIn duration: ShareLinkDuration) {
+        guard !item.isFolder else { return }
+        do {
+            let url = try requireClient().presignedURL(for: item.key, expiresIn: duration.rawValue)
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(url.absoluteString, forType: .string)
+            showToast("Share link copied. It works for \(duration.title.lowercased()).")
+        } catch {
+            showToast(error.localizedDescription, isError: true)
+        }
+    }
 
     func copyPaths(_ ids: Set<BrowserItem.ID>) {
         let paths = items(for: ids).map(\.key)

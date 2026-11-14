@@ -25,6 +25,23 @@ enum SelfTest {
         connection.bucket = env["S3_BUCKET"] ?? ""
         connection.accessKeyID = env["S3_ACCESS_KEY"] ?? ""
 
+        await step("presigned URL matches the AWS documented example") {
+            // https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html
+            let signer = SigV4Signer(
+                accessKeyID: "AKIAIOSFODNN7EXAMPLE",
+                secretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+                region: "us-east-1"
+            )
+            let query = signer.presignedQuery(
+                url: URL(string: "https://examplebucket.s3.amazonaws.com/test.txt")!,
+                canonicalURI: "/test.txt",
+                expires: 86400,
+                date: Date(timeIntervalSince1970: 1_369_353_600)
+            )
+            let expected = "aeeed9bbccd4d02ee5c0109b86d86835f995330da4c265957d157751f604d404"
+            try expect(query?.hasSuffix("X-Amz-Signature=" + expected) == true, "got \(query ?? "nil")")
+        }
+
         let client: S3Client
         do {
             client = try S3Client(connection: connection, secret: env["S3_SECRET_KEY"] ?? "")
@@ -51,6 +68,12 @@ enum SelfTest {
         }
         await step("get object round-trips") {
             let data = try await client.getObjectData(oddKey)
+            try expect(String(data: data, encoding: .utf8) == text, "content mismatch")
+        }
+        await step("presigned URL downloads without credentials") {
+            let url = try client.presignedURL(for: oddKey, expiresIn: 60)
+            let (data, response) = try await URLSession.shared.data(from: url)
+            try expect((response as? HTTPURLResponse)?.statusCode == 200, "status \((response as? HTTPURLResponse)?.statusCode ?? 0)")
             try expect(String(data: data, encoding: .utf8) == text, "content mismatch")
         }
         await step("ranged get") {

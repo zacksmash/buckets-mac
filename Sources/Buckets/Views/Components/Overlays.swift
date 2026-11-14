@@ -47,6 +47,25 @@ struct BusyCapsule: View {
     }
 }
 
+/// Transient note in the BusyCapsule style; errors get a warning symbol instead of a spinner.
+struct ToastCapsule: View {
+    let toast: Toast
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: toast.isError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                .foregroundStyle(toast.isError ? Color.orange : Color.green)
+            Text(toast.message)
+                .font(.callout.weight(.medium))
+                .lineLimit(2)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .floatingCapsule()
+        .accessibilityElement(children: .combine)
+    }
+}
+
 /// Shown when a folder has no contents.
 struct EmptyFolderView: View {
     let folderName: String
