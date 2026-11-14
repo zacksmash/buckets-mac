@@ -37,6 +37,8 @@ final class BrowserModel {
     @ObservationIgnored private var reloadTask: Task<Void, Never>?
     @ObservationIgnored var reservedPaths: Set<String> = []
     @ObservationIgnored private var selectionAnchor: BrowserItem.ID?
+    @ObservationIgnored private var typeaheadBuffer = ""
+    @ObservationIgnored private var typeaheadDate = Date.distantPast
     @ObservationIgnored private var isStarting = false
 
     private(set) var prefix = ""
@@ -309,6 +311,49 @@ final class BrowserModel {
             selection = [item.id]
             selectionAnchor = item.id
         }
+        selectionCursor = item.id
+    }
+
+    /// The item keyboard selection last moved to, so the icon view can scroll it into view.
+    private(set) var selectionCursor: BrowserItem.ID?
+
+    /// Arrow-key movement in the icon view: ±1 for left and right, ±columns for up and down.
+    func moveSelection(by offset: Int, extend: Bool) {
+        let ordered = displayedItems
+        guard !ordered.isEmpty else { return }
+        let target: Int
+        if let cursor = selectionCursor.flatMap({ id in ordered.firstIndex { $0.id == id } }),
+           selection.contains(ordered[cursor].id) {
+            let moved = cursor + offset
+            guard ordered.indices.contains(moved) else { return }
+            target = moved
+        } else if let first = ordered.firstIndex(where: { selection.contains($0.id) }) {
+            target = offset < 0 ? first : (ordered.lastIndex { selection.contains($0.id) } ?? first)
+        } else {
+            target = offset < 0 ? ordered.count - 1 : 0
+        }
+        let item = ordered[target]
+        if extend, let anchor = selectionAnchor, let from = ordered.firstIndex(where: { $0.id == anchor }) {
+            selection = Set(ordered[min(from, target) ... max(from, target)].map(\.id))
+        } else {
+            selection = [item.id]
+            selectionAnchor = item.id
+        }
+        selectionCursor = item.id
+    }
+
+    /// Finder's type-to-select: typing quickly builds a prefix that jumps to the first matching name.
+    func typeSelect(_ characters: String) {
+        let now = Date()
+        typeaheadBuffer = now.timeIntervalSince(typeaheadDate) > 1 ? characters : typeaheadBuffer + characters
+        typeaheadDate = now
+        let ordered = displayedItems
+        guard let match = ordered.first(where: {
+            $0.name.range(of: typeaheadBuffer, options: [.caseInsensitive, .anchored, .diacriticInsensitive]) != nil
+        }) else { return }
+        selection = [match.id]
+        selectionAnchor = match.id
+        selectionCursor = match.id
     }
 
     func selectAll() {

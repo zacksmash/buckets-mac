@@ -6,11 +6,26 @@ struct FileGridView: View {
     @Bindable var model: BrowserModel
     @Binding var showInspector: Bool
     @FocusState private var isFocused: Bool
+    @State private var columnCount = 1
+
+    private static let tileWidth: CGFloat = 108
+    private static let columnSpacing: CGFloat = 6
+    private static let padding: CGFloat = 20
 
     var body: some View {
+        ScrollViewReader { proxy in
+            grid
+                .onChange(of: model.selectionCursor) { _, id in
+                    guard let id else { return }
+                    withAnimation(.snappy(duration: 0.2)) { proxy.scrollTo(id) }
+                }
+        }
+    }
+
+    private var grid: some View {
         ScrollView {
             LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 108, maximum: 128), spacing: 6, alignment: .top)],
+                columns: [GridItem(.adaptive(minimum: Self.tileWidth, maximum: 128), spacing: Self.columnSpacing, alignment: .top)],
                 alignment: .leading,
                 spacing: 16
             ) {
@@ -23,8 +38,13 @@ struct FileGridView: View {
                     )
                 }
             }
-            .padding(20)
+            .padding(Self.padding)
             .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
+            // Matches how an adaptive GridItem fits columns, so up and down move by one row.
+            let available = width - Self.padding * 2 + Self.columnSpacing
+            columnCount = max(1, Int(available / (Self.tileWidth + Self.columnSpacing)))
         }
         .contentShape(Rectangle())
         .onTapGesture {
@@ -39,6 +59,21 @@ struct FileGridView: View {
         .focused($isFocused)
         .onAppear { isFocused = true }
         .browserKeyCommands(model)
+        .onKeyPress(keys: [.leftArrow, .rightArrow, .upArrow, .downArrow]) { press in
+            if press.modifiers.contains(.command) {
+                guard press.key == .downArrow else { return .ignored }
+                model.openSelection()
+                return .handled
+            }
+            let offset = switch press.key {
+            case .leftArrow: -1
+            case .rightArrow: 1
+            case .upArrow: -columnCount
+            default: columnCount
+            }
+            model.moveSelection(by: offset, extend: press.modifiers.contains(.shift))
+            return .handled
+        }
     }
 }
 

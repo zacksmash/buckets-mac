@@ -1,7 +1,7 @@
 import SwiftUI
 
 extension View {
-    /// Finder's keys shared by the list and icon views: Space, Return, ⌘⌫, Escape and ⌘A.
+    /// Finder's keys shared by the list and icon views: Space, Return, ⌘⌫, Escape, ⌘A and type-to-select.
     func browserKeyCommands(_ model: BrowserModel) -> some View {
         self
             .onKeyPress(.space) {
@@ -27,5 +27,15 @@ extension View {
                 model.selectAll()
                 return .handled
             }
+            .onKeyPress(characters: .typeSelectable) { press in
+                guard press.modifiers.isDisjoint(with: [.command, .control, .option]) else { return .ignored }
+                model.typeSelect(press.characters)
+                return .handled
+            }
     }
+}
+
+private extension CharacterSet {
+    /// Characters that start or continue a type-to-select search. Space stays with Quick Look.
+    static let typeSelectable = CharacterSet.alphanumerics.union(.punctuationCharacters).union(.symbols)
 }
