@@ -54,8 +54,9 @@ struct FileTableView: View {
             let items = model.items(for: ids)
             if items.count == 1, let item = items.first {
                 model.open(item)
-            } else if !items.isEmpty {
-                model.download(ids)
+            } else if let file = items.first(where: { !$0.isFolder }) {
+                // Opening many objects at once would mean many downloads, so preview one instead.
+                model.quickLook(file)
             }
         }
         .browserKeyCommands(model)

@@ -283,6 +283,13 @@ private struct BrowserToolbar: ToolbarContent {
         ToolbarSpacer(.fixed, placement: .primaryAction)
 
         ToolbarItemGroup(placement: .primaryAction) {
+            Button {
+                model.reload()
+            } label: {
+                Label("Refresh", systemImage: "arrow.clockwise")
+            }
+            .help("Refresh (⌘R)")
+
             TransfersButton(transfers: model.transfers)
 
             Button {
@@ -290,7 +297,7 @@ private struct BrowserToolbar: ToolbarContent {
             } label: {
                 Label("Inspector", systemImage: "info.circle")
             }
-            .help("Show or hide the inspector (⌃⌘I)")
+            .help("Show or hide the inspector (⌘I)")
         }
     }
 }

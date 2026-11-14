@@ -36,6 +36,12 @@ struct AppCommands: Commands {
             Button("Upload Files…") { browser?.requestUpload() }
                 .keyboardShortcut("u")
                 .disabled(browser == nil)
+
+            Divider()
+
+            Button("Get Info") { browser?.isInspectorVisible.toggle() }
+                .keyboardShortcut("i")
+                .disabled(browser == nil)
         }
 
         CommandGroup(after: .pasteboard) {
