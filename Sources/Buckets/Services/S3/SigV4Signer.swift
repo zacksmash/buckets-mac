@@ -34,7 +34,8 @@ struct SigV4Signer: Sendable {
         request.setValue(payloadHash, forHTTPHeaderField: "x-amz-content-sha256")
 
         guard let url = request.url, let host = url.host else { return }
-        var hostValue = host
+        // IPv6 literals keep their brackets in the Host header.
+        var hostValue = host.contains(":") && !host.hasPrefix("[") ? "[\(host)]" : host
         if let port = url.port, !(url.scheme == "https" && port == 443), !(url.scheme == "http" && port == 80) {
             hostValue += ":\(port)"
         }
