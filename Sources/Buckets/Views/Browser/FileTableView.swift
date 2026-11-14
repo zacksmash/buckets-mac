@@ -19,11 +19,11 @@ struct FileTableView: View {
             .width(min: 160)
 
             TableColumn("Date Modified", value: \.sortDate) { item in
-                Text(item.lastModified.map(Format.date) ?? "--")
+                Text(item.lastModified.map(Format.compactDate) ?? "--")
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
-            .width(min: 110, ideal: 175, max: 230)
+            .width(min: 150, ideal: 160, max: 230)
 
             TableColumn("Size", value: \.sortSize) { item in
                 Text(item.isFolder ? "--" : Format.bytes(item.size))
@@ -38,7 +38,7 @@ struct FileTableView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
-            .width(min: 80, ideal: 130, max: 200)
+            .width(min: 80, ideal: 150, max: 200)
         } rows: {
             ForEach(model.displayedItems) { item in
                 TableRow(item)

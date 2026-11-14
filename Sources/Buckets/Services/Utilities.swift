@@ -60,7 +60,17 @@ enum Format {
         return formatter
     }()
 
+    private static let compactDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        formatter.doesRelativeDateFormatting = true
+        return formatter
+    }()
+
     static func date(_ date: Date) -> String { dateFormatter.string(from: date) }
+    /// Short enough for the list view's Date Modified column with the inspector open.
+    static func compactDate(_ date: Date) -> String { compactDateFormatter.string(from: date) }
 
     static func relative(_ date: Date) -> String {
         if abs(date.timeIntervalSinceNow) < 60 { return "just now" }
