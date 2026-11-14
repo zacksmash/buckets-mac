@@ -26,10 +26,10 @@ final class BrowserModel {
     let onEditConnection: () -> Void
     let thumbnailCache = NSCache<NSString, NSImage>()
 
-    @ObservationIgnored private var client: S3Client?
+    @ObservationIgnored var client: S3Client?
     @ObservationIgnored private var loadTask: Task<Void, Never>?
     @ObservationIgnored private var reloadTask: Task<Void, Never>?
-    @ObservationIgnored private var reservedPaths: Set<String> = []
+    @ObservationIgnored var reservedPaths: Set<String> = []
     @ObservationIgnored private var selectionAnchor: BrowserItem.ID?
     @ObservationIgnored private var isStarting = false
 
@@ -46,7 +46,7 @@ final class BrowserModel {
     var busyMessage: String?
     var errorMessage: String?
     /// ETag each open text document was loaded at, sent as If-Match on save.
-    @ObservationIgnored private var editETags: [UUID: String] = [:]
+    @ObservationIgnored var editETags: [UUID: String] = [:]
     var quickLookURL: URL? {
         didSet {
             // Each preview downloads into its own UUID folder; drop it once the preview closes or changes.
@@ -85,7 +85,12 @@ final class BrowserModel {
     func start() {
         guard client == nil, !isStarting else { return }
         if UserDefaults.standard.bool(forKey: "DemoMode") {
-            loadDemoContent()
+            items = Self.demoItems(in: prefix)
+            if let name = UserDefaults.standard.string(forKey: "DemoSelect"),
+               let item = items.first(where: { $0.name == name }) {
+                selection = [item.id]
+            }
+            state = .loaded
             return
         }
         isStarting = true
@@ -181,7 +186,7 @@ final class BrowserModel {
         load(prefix, keepSelection: true)
     }
 
-    private func scheduleReload() {
+    func scheduleReload() {
         reloadTask?.cancel()
         reloadTask = Task {
             try? await Task.sleep(for: .milliseconds(350))
@@ -348,12 +353,12 @@ final class BrowserModel {
 
     // MARK: - Mutations
 
-    private func requireClient() throws -> S3Client {
+    func requireClient() throws -> S3Client {
         guard let client else { throw S3Error.notConfigured }
         return client
     }
 
-    private func present(_ error: Error) {
+    func present(_ error: Error) {
         guard !isCancellation(error) else { return }
         errorMessage = error.localizedDescription
     }
@@ -497,344 +502,6 @@ final class BrowserModel {
         }
     }
 
-    // MARK: - Uploads
-
-    func upload(_ urls: [URL], into destination: String? = nil) {
-        guard let client else { return }
-        let target = destination ?? prefix
-        for url in urls {
-            let isDirectory = (try? url.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
-            if isDirectory {
-                uploadDirectory(url, into: target, client: client)
-            } else {
-                uploadFile(url, into: target, client: client)
-            }
-        }
-    }
-
-    private func uploadFile(_ url: URL, into target: String, client: S3Client) {
-        let name = url.lastPathComponent
-        let key = target + name
-        let size = Int64((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
-        let contentType = MIME.type(forFileName: name)
-
-        transfers.enqueue(
-            name: name,
-            direction: .upload,
-            destination: folderDescription(target),
-            totalBytes: size,
-            operation: { progress in
-                try await client.uploadFile(url, to: key, contentType: contentType, progress: progress)
-            },
-            onFinish: { [weak self] success in
-                guard success, let self, target == self.prefix else { return }
-                self.scheduleReload()
-            }
-        )
-    }
-
-    private func uploadDirectory(_ directory: URL, into target: String, client: S3Client) {
-        let folderName = directory.lastPathComponent
-        let root = target + folderName + "/"
-        let baseComponents = directory.standardizedFileURL.pathComponents.count
-
-        transfers.enqueue(
-            name: folderName,
-            isFolder: true,
-            direction: .upload,
-            destination: folderDescription(target),
-            totalBytes: 0,
-            operation: { progress in
-                // Gather files off the main thread.
-                var files: [(url: URL, key: String, size: Int64)] = []
-                let keys: [URLResourceKey] = [.isRegularFileKey, .fileSizeKey]
-                if let enumerator = FileManager.default.enumerator(
-                    at: directory, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles]
-                ) {
-                    while let fileURL = enumerator.nextObject() as? URL {
-                        let values = try? fileURL.resourceValues(forKeys: Set(keys))
-                        guard values?.isRegularFile == true else { continue }
-                        let relative = fileURL.standardizedFileURL.pathComponents.dropFirst(baseComponents).joined(separator: "/")
-                        files.append((fileURL, root + relative, Int64(values?.fileSize ?? 0)))
-                    }
-                }
-                let total = max(files.reduce(Int64(0)) { $0 + $1.size }, 1)
-                progress(0, total)
-                try await client.createFolder(root)
-                var completed: Int64 = 0
-                for file in files {
-                    try Task.checkCancellation()
-                    let base = completed
-                    try await client.uploadFile(
-                        file.url, to: file.key, contentType: MIME.type(forFileName: file.url.lastPathComponent)
-                    ) { sent, _ in progress(base + sent, total) }
-                    completed += file.size
-                    progress(completed, total)
-                }
-            },
-            onFinish: { [weak self] _ in
-                guard let self, target == self.prefix else { return }
-                self.scheduleReload()
-            }
-        )
-    }
-
-    // MARK: - Downloads
-
-    private var downloadsFolder: URL {
-        FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask)[0]
-    }
-
-    /// Finds a free name like Finder does: "photo 2.jpg".
-    private func uniqueURL(in folder: URL, name: String) -> URL {
-        let base = (name as NSString).deletingPathExtension
-        let ext = (name as NSString).pathExtension
-        var candidate = folder.appendingPathComponent(name)
-        var counter = 2
-        while FileManager.default.fileExists(atPath: candidate.path) || reservedPaths.contains(candidate.path) {
-            let numbered = ext.isEmpty ? "\(base) \(counter)" : "\(base) \(counter).\(ext)"
-            candidate = folder.appendingPathComponent(numbered)
-            counter += 1
-        }
-        reservedPaths.insert(candidate.path)
-        return candidate
-    }
-
-    func downloadSelection() {
-        download(selection)
-    }
-
-    func download(_ ids: Set<BrowserItem.ID>) {
-        guard let client else { return }
-        for item in items(for: ids) {
-            let destination = uniqueURL(in: downloadsFolder, name: item.name)
-            if item.isFolder {
-                downloadFolder(item, to: destination, client: client)
-            } else {
-                transfers.enqueue(
-                    name: destination.lastPathComponent,
-                    direction: .download,
-                    destination: "Downloads",
-                    totalBytes: item.size,
-                    localURL: destination,
-                    operation: { progress in
-                        try await client.download(item.key, to: destination, progress: progress)
-                    },
-                    onFinish: { [weak self] success in
-                        self?.reservedPaths.remove(destination.path)
-                        if success { Self.bounceDownloads(destination) }
-                    }
-                )
-            }
-        }
-    }
-
-    private func downloadFolder(_ item: BrowserItem, to destination: URL, client: S3Client) {
-        transfers.enqueue(
-            name: destination.lastPathComponent,
-            isFolder: true,
-            direction: .download,
-            destination: "Downloads",
-            totalBytes: 0,
-            localURL: destination,
-            operation: { progress in
-                let contents = try await client.list(prefix: item.key, delimiter: nil)
-                let files = contents.objects.filter { !$0.key.hasSuffix("/") }
-                let total = max(files.reduce(Int64(0)) { $0 + $1.size }, 1)
-                progress(0, total)
-                try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
-                var completed: Int64 = 0
-                var skipped: [String] = []
-                for object in files {
-                    try Task.checkCancellation()
-                    let relative = String(object.key.dropFirst(item.key.count))
-                    guard let target = Self.safeLocalURL(for: relative, in: destination) else {
-                        skipped.append(object.key)
-                        completed += object.size
-                        continue
-                    }
-                    let base = completed
-                    // Replacing is safe here: the target is checked to sit inside our own new folder.
-                    try await client.download(object.key, to: target, replaceExisting: true) { received, _ in
-                        progress(base + received, total)
-                    }
-                    completed += object.size
-                    progress(completed, total)
-                }
-                if !skipped.isEmpty {
-                    throw DownloadError.unsafeKeys(skipped)
-                }
-            },
-            onFinish: { [weak self] success in
-                self?.reservedPaths.remove(destination.path)
-                if success { Self.bounceDownloads(destination) }
-            }
-        )
-    }
-
-    /// Maps a key's path relative to a downloaded folder onto a local URL inside `folder`.
-    /// Returns nil for anything that could escape it ("." or ".." components, or no name at all).
-    nonisolated static func safeLocalURL(for relative: String, in folder: URL) -> URL? {
-        let components = relative.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
-        guard !components.isEmpty, !components.contains(where: { $0 == "." || $0 == ".." }) else { return nil }
-        let target = components.reduce(folder) { $0.appendingPathComponent($1) }.standardizedFileURL
-        let root = folder.standardizedFileURL.path
-        guard target.path.hasPrefix(root.hasSuffix("/") ? root : root + "/") else { return nil }
-        return target
-    }
-
-    enum DownloadError: LocalizedError {
-        case unsafeKeys([String])
-
-        var errorDescription: String? {
-            switch self {
-            case let .unsafeKeys(keys):
-                let sample = keys.prefix(3).map { "“\($0)”" }.joined(separator: ", ")
-                return keys.count == 1
-                    ? "Skipped \(sample) because its name isn't safe to save on this Mac."
-                    : "Skipped \(keys.count) files whose names aren't safe to save on this Mac, including \(sample)."
-            }
-        }
-    }
-
-    /// Makes the Downloads stack in the Dock bounce, like Safari.
-    private static func bounceDownloads(_ url: URL) {
-        DistributedNotificationCenter.default().post(
-            name: Notification.Name("com.apple.DownloadFileFinished"),
-            object: url.path
-        )
-    }
-
-    // MARK: - Preview, Quick Look & editing
-
-    func toggleQuickLook() {
-        if quickLookURL != nil {
-            quickLookURL = nil
-        } else if let item = selectedItems.first, !item.isFolder {
-            quickLook(item)
-        }
-    }
-
-    func quickLook(_ item: BrowserItem) {
-        guard !item.isFolder, let client else { return }
-        let folder = Self.quickLookRoot.appendingPathComponent(UUID().uuidString, isDirectory: true)
-        guard let destination = Self.safeLocalURL(for: item.name, in: folder),
-              destination.deletingLastPathComponent().standardizedFileURL == folder.standardizedFileURL
-        else {
-            errorMessage = "“\(item.name)” can't be previewed because its name isn't safe to save on this Mac."
-            return
-        }
-        busyMessage = "Preparing preview…"
-        Task {
-            defer { busyMessage = nil }
-            do {
-                try await client.download(item.key, to: destination) { _, _ in }
-                quickLookURL = destination
-            } catch {
-                present(error)
-            }
-        }
-    }
-
-    func edit(_ item: BrowserItem) {
-        guard let client else { return }
-        guard item.size <= 10_000_000 else {
-            errorMessage = "“\(item.name)” is too large to edit here (\(Format.bytes(item.size))). Download it instead."
-            return
-        }
-        busyMessage = "Opening “\(item.name)”…"
-        Task {
-            defer { busyMessage = nil }
-            do {
-                // Read the ETag first: if the file changes before the GET, saving fails safe with a conflict.
-                let metadata = try? await client.headObject(item.key)
-                let data = try await client.getObjectData(item.key)
-                let encoding: String.Encoding
-                let text: String
-                if let utf8 = String(data: data, encoding: .utf8) {
-                    text = utf8
-                    encoding = .utf8
-                } else if let latin = String(data: data, encoding: .isoLatin1) {
-                    text = latin
-                    encoding = .isoLatin1
-                } else {
-                    errorMessage = "“\(item.name)” doesn't look like a text file."
-                    return
-                }
-                editingDocument = TextDocument(
-                    item: item,
-                    original: text,
-                    encoding: encoding,
-                    contentType: metadata?.contentType ?? MIME.type(forFileName: item.name)
-                )
-                if let document = editingDocument {
-                    editETags[document.id] = metadata?.etag ?? item.etag
-                }
-            } catch {
-                present(error)
-            }
-        }
-    }
-
-    func save(_ document: TextDocument, text: String) async throws {
-        let client = try requireClient()
-        guard let data = text.data(using: document.encoding) else {
-            throw SaveError.unencodable(document.encoding.description)
-        }
-        do {
-            let etag = try await client.putObject(
-                document.item.key, data: data, contentType: document.contentType, ifMatch: editETags[document.id]
-            )
-            editETags[document.id] = etag
-        } catch let S3Error.service(code, _, status) where status == 412 || code == "PreconditionFailed" {
-            throw SaveError.changedOnServer(document.item.name)
-        } catch S3Error.http(412) {
-            throw SaveError.changedOnServer(document.item.name)
-        }
-        thumbnailCache.removeObject(forKey: document.item.key as NSString)
-        reload()
-    }
-
-    enum SaveError: LocalizedError {
-        case unencodable(String)
-        case changedOnServer(String)
-
-        var errorDescription: String? {
-            switch self {
-            case let .unencodable(encoding):
-                "This text has characters that can't be saved in the file's original encoding (\(encoding)). Remove them, or download the file and edit it elsewhere."
-            case let .changedOnServer(name):
-                "“\(name)” changed on the server since you opened it. Close the editor and open it again to get the latest version. Your edits weren't saved."
-            }
-        }
-    }
-
-    func metadata(for item: BrowserItem) async throws -> S3ObjectMetadata {
-        try await requireClient().headObject(item.key)
-    }
-
-    func previewData(for item: BrowserItem, maxBytes: Int? = nil) async throws -> Data {
-        try await requireClient().getObjectData(item.key, maxBytes: maxBytes)
-    }
-
-    func folderStatistics(_ item: BrowserItem) async throws -> (files: Int, bytes: Int64) {
-        let contents = try await requireClient().list(prefix: item.key, delimiter: nil)
-        let files = contents.objects.filter { !$0.key.hasSuffix("/") }
-        return (files.count, files.reduce(Int64(0)) { $0 + $1.size })
-    }
-
-    func thumbnail(for item: BrowserItem, maxPixelSize: CGFloat = 256) async -> NSImage? {
-        let cacheKey = item.key as NSString
-        if let cached = thumbnailCache.object(forKey: cacheKey) { return cached }
-        guard item.isImage, item.size > 0, item.size <= 8_000_000, let client else { return nil }
-        guard let data = try? await client.getObjectData(item.key) else { return nil }
-        let image = await Task.detached(priority: .utility) {
-            Thumbnailer.thumbnail(from: data, maxPixelSize: maxPixelSize)
-        }.value
-        if let image { thumbnailCache.setObject(image, forKey: cacheKey) }
-        return image
-    }
-
     // MARK: - Pasteboard
 
     func copyPaths(_ ids: Set<BrowserItem.ID>) {
@@ -849,39 +516,5 @@ final class BrowserModel {
         guard !uris.isEmpty else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(uris.joined(separator: "\n"), forType: .string)
-    }
-
-    // MARK: - Demo content
-
-    /// Sample listing for design reviews and screenshots, enabled with
-    /// `open Buckets.app --args -DemoMode YES [-DemoSelect <name>]`. Never touches the network.
-    private func loadDemoContent() {
-        let now = Date()
-        func file(_ name: String, _ size: Int64, _ hoursAgo: Double) -> BrowserItem {
-            BrowserItem(key: prefix + name, name: name, isFolder: false, size: size,
-                        lastModified: now.addingTimeInterval(-hoursAgo * 3600), etag: "9b2cf535f27731c974343645a3985328")
-        }
-        func folder(_ name: String) -> BrowserItem {
-            BrowserItem(key: prefix + name + "/", name: name, isFolder: true, size: 0, lastModified: nil, etag: nil)
-        }
-        items = [
-            folder("assets"), folder("backups"), folder("config"), folder("videos"),
-            file("README.md", 4_812, 0.4),
-            file("index.html", 18_204, 3),
-            file("hero-banner.jpg", 2_418_220, 26),
-            file("logo.png", 84_120, 50),
-            file("app.js", 312_448, 5),
-            file("styles.css", 41_002, 5),
-            file("manifest.json", 1_204, 72),
-            file("Quarterly Report 2026.pdf", 3_902_114, 200),
-            file("site-archive.zip", 128_400_112, 400),
-            file("intro.mp4", 48_220_884, 600),
-            file("notes.txt", 2_310, 900),
-        ]
-        if let name = UserDefaults.standard.string(forKey: "DemoSelect"),
-           let item = items.first(where: { $0.name == name }) {
-            selection = [item.id]
-        }
-        state = .loaded
     }
 }
