@@ -4,9 +4,12 @@ import os
 
 /// Stores each connection's secret access key in the user's login keychain.
 enum Keychain {
-    private static let service = "com.zacksmash.Buckets.credentials"
-    /// Where secrets lived under the app's earlier bundle ID; moved over the first time they're read.
-    private static let legacyService = "com.maxconnect.Buckets.credentials"
+    private static let service = "com.zacksmash.Buckets.secrets"
+    /// Where earlier builds kept secrets. Those items only trust the exact (ad hoc signed) build that
+    /// wrote them, so every other build is asked for the password. A secret found there is copied into
+    /// a fresh item written by this build, which trusts it from then on. The old items are left alone:
+    /// deleting them could ask for the password again.
+    private static let legacyServices = ["com.zacksmash.Buckets.credentials", "com.maxconnect.Buckets.credentials"]
 
     /// Secrets already read this run. Each Keychain read can ask the user for their password
     /// (until they choose Always Allow), so ask once per connection, not on every bucket switch.
@@ -50,9 +53,13 @@ enum Keychain {
     static func secret(for id: UUID) -> String? {
         if let secret = cached(id) { return secret }
         if let secret = read(service: service, id: id) { remember(secret, for: id); return secret }
-        guard let old = read(service: legacyService, id: id) else { return nil }
-        if (try? setSecret(old, for: id)) != nil { delete(service: legacyService, id: id) }
-        return old
+        for legacy in legacyServices {
+            guard let old = read(service: legacy, id: id) else { continue }
+            try? setSecret(old, for: id)
+            remember(old, for: id)
+            return old
+        }
+        return nil
     }
 
     private static func read(service: String, id: UUID) -> String? {
@@ -72,7 +79,7 @@ enum Keychain {
     static func deleteSecret(for id: UUID) {
         remember(nil, for: id)
         delete(service: service, id: id)
-        delete(service: legacyService, id: id)
+        for legacy in legacyServices { delete(service: legacy, id: id) }
     }
 
     private static func delete(service: String, id: UUID) {
