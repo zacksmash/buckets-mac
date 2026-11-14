@@ -57,7 +57,7 @@ struct TransfersPopover: View {
                 Text("Transfers")
                     .font(.body.weight(.semibold))
                 Spacer()
-                Button("Clear") { withAnimation(.snappy) { transfers.clearFinished() } }
+                Button("Clear") { withAnimation(.easeOut(duration: 0.2)) { transfers.clearFinished() } }
                     .buttonStyle(.borderless)
                     .disabled(!transfers.hasFinished)
             }
@@ -79,7 +79,7 @@ struct TransfersPopover: View {
                         .foregroundStyle(.tertiary)
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 150)
+                .frame(height: Self.listHeight)
             } else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -91,12 +91,14 @@ struct TransfersPopover: View {
                         }
                     }
                 }
-                .frame(maxHeight: 380)
-                .fixedSize(horizontal: false, vertical: true)
+                // A fixed height: a popover that resizes with its rows judders as they animate away.
+                .frame(height: Self.listHeight)
             }
         }
         .frame(width: 380)
     }
+
+    private static let listHeight: CGFloat = 300
 }
 
 private struct TransferRow: View {
