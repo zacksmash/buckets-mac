@@ -2,8 +2,17 @@ import SwiftUI
 
 // MARK: - Focused values
 
+/// Spelled out rather than `@Entry`, which warns about storing a closure.
+struct NewConnectionActionKey: FocusedValueKey {
+    typealias Value = () -> Void
+}
+
 extension FocusedValues {
-    @Entry var newConnectionAction: (() -> Void)?
+    var newConnectionAction: (() -> Void)? {
+        get { self[NewConnectionActionKey.self] }
+        set { self[NewConnectionActionKey.self] = newValue }
+    }
+
     @Entry var browserModel: BrowserModel?
 }
 
