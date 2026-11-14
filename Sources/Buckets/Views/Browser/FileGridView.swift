@@ -111,5 +111,20 @@ private struct FileTile: View {
         }
         .help(item.displayPath)
         .animation(.snappy(duration: 0.15), value: isSelected)
+        .modifier(DragOut(item: item, model: model))
+    }
+}
+
+/// Lets files be dragged to the Finder; folders stay put.
+private struct DragOut: ViewModifier {
+    let item: BrowserItem
+    let model: BrowserModel
+
+    func body(content: Content) -> some View {
+        if item.isFolder {
+            content
+        } else {
+            content.onDrag { model.dragItemProvider(for: item) ?? NSItemProvider() }
+        }
     }
 }

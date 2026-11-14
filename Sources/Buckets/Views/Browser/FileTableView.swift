@@ -42,6 +42,7 @@ struct FileTableView: View {
         } rows: {
             ForEach(model.displayedItems) { item in
                 TableRow(item)
+                    .itemProvider { model.dragItemProvider(for: item) }
                     .dropDestination(for: URL.self) { urls in
                         model.upload(urls, into: item.isFolder ? item.key : model.prefix)
                     }

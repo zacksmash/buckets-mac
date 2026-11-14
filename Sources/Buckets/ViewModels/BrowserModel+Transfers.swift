@@ -81,6 +81,15 @@ extension BrowserModel {
 
     // MARK: - Downloads
 
+    /// What dragging `item` out to the Finder carries. Folders can't be dragged out yet.
+    func dragItemProvider(for item: BrowserItem) -> NSItemProvider? {
+        guard !item.isFolder, let client else { return nil }
+        let provider = NSItemProvider()
+        provider.register(DraggedObject(key: item.key, name: item.name, client: client))
+        provider.suggestedName = item.name
+        return provider
+    }
+
     func downloadSelection() {
         download(selection)
     }
