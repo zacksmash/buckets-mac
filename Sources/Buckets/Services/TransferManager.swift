@@ -65,6 +65,8 @@ final class Transfer: Identifiable {
     var startedAt: Date?
     var finishedAt: Date?
     @ObservationIgnored var task: Task<Void, Never>?
+    /// Bumped on every start, so a stale run never touches the current one's state.
+    @ObservationIgnored var generation = 0
 
     init(
         name: String,
@@ -177,6 +179,9 @@ final class TransferManager {
     }
 
     private func start(_ transfer: Transfer) {
+        transfer.task?.cancel()
+        transfer.generation += 1
+        let generation = transfer.generation
         transfer.state = .queued
         transfer.bytesDone = 0
         transfer.startedAt = nil
@@ -185,6 +190,10 @@ final class TransferManager {
 
         transfer.task = Task {
             await limiter.acquire()
+            guard transfer.generation == generation else {
+                await limiter.release()
+                return
+            }
             if Task.isCancelled || transfer.state == .cancelled {
                 transfer.state = .cancelled
                 await limiter.release()
@@ -199,17 +208,22 @@ final class TransferManager {
             do {
                 try await transfer.operation { done, total in
                     guard throttle.shouldEmit(done: done, total: total) else { return }
-                    Task { @MainActor in transfer.update(done: done, total: total) }
+                    Task { @MainActor in
+                        guard transfer.generation == generation else { return }
+                        transfer.update(done: done, total: total)
+                    }
                 }
+                await limiter.release()
+                guard transfer.generation == generation else { return }
                 transfer.bytesDone = transfer.bytesTotal
                 transfer.state = .completed
                 transfer.finishedAt = Date()
-                await limiter.release()
                 transfer.onFinish?(true)
             } catch {
+                await limiter.release()
+                guard transfer.generation == generation else { return }
                 transfer.state = (Task.isCancelled || isCancellation(error)) ? .cancelled : .failed(error.localizedDescription)
                 transfer.finishedAt = Date()
-                await limiter.release()
                 transfer.onFinish?(false)
             }
         }
