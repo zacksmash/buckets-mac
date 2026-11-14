@@ -98,10 +98,17 @@ The secret key is stored in your Mac's Keychain. Everything else is saved in `~/
 | <kbd>⌘</kbd><kbd>U</kbd> | Upload files |
 | <kbd>⌥</kbd><kbd>⌘</kbd><kbd>D</kbd> | Download selection |
 | <kbd>⌥</kbd><kbd>⌘</kbd><kbd>C</kbd> | Copy path |
+| <kbd>⌘</kbd><kbd>I</kbd> | Show or hide Get Info |
+| <kbd>Space</kbd> | Quick Look |
+| Arrow keys | Move the selection in icon view (<kbd>⇧</kbd> extends it) |
+| Type a name | Jump to the first item that starts with it |
 | <kbd>⌥</kbd><kbd>⌘</kbd><kbd>N</kbd> | New window |
 
 - **Upload**: drag files or folders from the Finder onto the browser. They go into the folder you're in.
-- **Right-click** an item to open, Quick Look, download, rename, copy its path or delete it.
+- **Drag out**: drag a file to the Finder or your desktop. It downloads when you drop it.
+- **Share links**: right-click a file and choose **Copy Share Link** for a link that works for 1 hour, 1 day or 7 days. Anyone with the link can download the file until it expires.
+- **Sort**: **View → Sort By**, the toolbar's **⋯** menu, or click a column in list view. Each connection remembers its view, sort, inspector and the folder you were in.
+- **Right-click** an item to open, Quick Look, download, rename, copy its path or a share link, or delete it.
 - **Edit**: text files open in an editor. <kbd>⌘</kbd><kbd>S</kbd> saves back to the bucket. **File → New Text File…** creates one.
 - **Transfers**: uploads and downloads show progress in the toolbar's transfers popover.
 - **Open in New Window** to browse two folders or buckets side by side.
