@@ -419,17 +419,16 @@ final class BrowserModel {
         defer { busyMessage = nil }
         do {
             let client = try requireClient()
-            var keys: [String] = []
+            var keys: Set<String> = []
             for target in targets {
                 if target.isFolder {
-                    let contents = try await client.list(prefix: target.key, delimiter: nil)
-                    keys += contents.objects.map(\.key)
-                    keys.append(target.key)
-                } else {
-                    keys.append(target.key)
+                    try await client.forEachPage(prefix: target.key) { objects in
+                        try await client.deleteObjects(objects.map(\.key))
+                    }
                 }
+                keys.insert(target.key)
             }
-            try await client.deleteObjects(Array(Set(keys)))
+            try await client.deleteObjects(Array(keys))
             let removed = Set(targets.map(\.id))
             withAnimation(.snappy) {
                 items.removeAll { removed.contains($0.id) }
@@ -438,6 +437,18 @@ final class BrowserModel {
         } catch {
             present(error)
             reload()
+        }
+    }
+
+    enum RenameError: LocalizedError {
+        case tooLarge(String, moved: Bool)
+
+        var errorDescription: String? {
+            switch self {
+            case let .tooLarge(name, moved):
+                "“\(name)” is larger than 5 GB, which is too big to rename in place."
+                    + (moved ? " Some items were already copied to the new name; the rest were left where they were." : "")
+            }
         }
     }
 
@@ -454,13 +465,20 @@ final class BrowserModel {
         do {
             let client = try requireClient()
             if item.isFolder {
-                let contents = try await client.list(prefix: item.key, delimiter: nil)
-                for object in contents.objects {
-                    try await client.copyObject(from: object.key, to: newKey + object.key.dropFirst(item.key.count))
+                var movedAny = false
+                try await client.forEachPage(prefix: item.key) { objects in
+                    for object in objects {
+                        guard object.size <= S3Client.maximumCopySize else {
+                            throw RenameError.tooLarge(String(object.key.dropFirst(item.key.count)), moved: movedAny)
+                        }
+                        try await client.copyObject(from: object.key, to: newKey + object.key.dropFirst(item.key.count))
+                        movedAny = true
+                    }
+                    try await client.deleteObjects(objects.map(\.key))
                 }
-                if contents.objects.isEmpty { try await client.createFolder(newKey) }
-                try await client.deleteObjects(contents.objects.map(\.key))
+                if !movedAny { try await client.createFolder(newKey) }
             } else {
+                guard item.size <= S3Client.maximumCopySize else { throw RenameError.tooLarge(item.name, moved: false) }
                 try await client.copyObject(from: item.key, to: newKey)
                 try await client.deleteObject(item.key)
             }

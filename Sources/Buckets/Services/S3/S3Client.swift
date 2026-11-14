@@ -241,6 +241,18 @@ final class S3Client: @unchecked Sendable {
         return (objects, prefixes)
     }
 
+    /// Walks every object under `prefix` one listing page at a time, so large folders
+    /// never have to be held in memory all at once.
+    func forEachPage(prefix: String, _ body: ([S3Object]) async throws -> Void) async throws {
+        var token: String?
+        repeat {
+            try Task.checkCancellation()
+            let page = try await listPage(prefix: prefix, delimiter: nil, continuationToken: token)
+            try await body(page.objects)
+            token = page.isTruncated ? page.nextContinuationToken : nil
+        } while token != nil
+    }
+
     /// Lightweight check used by "Test Connection". Returns the number of top-level entries seen.
     func testConnection() async throws -> (count: Int, hasMore: Bool) {
         let page = try await listPage(prefix: "", delimiter: "/", maxKeys: 100)
@@ -326,6 +338,9 @@ final class S3Client: @unchecked Sendable {
             }
         }
     }
+
+    /// CopyObject's limit; bigger objects need a multipart copy, which Buckets doesn't do.
+    static let maximumCopySize: Int64 = 5 * 1024 * 1024 * 1024
 
     func copyObject(from source: String, to destination: String) async throws {
         let copySource = "/" + SigV4Signer.uriEncode(bucket, encodeSlash: true) + "/" + SigV4Signer.uriEncode(source, encodeSlash: false)
