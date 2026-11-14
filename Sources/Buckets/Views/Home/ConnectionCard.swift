@@ -35,7 +35,7 @@ struct ConnectionCard: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
             }
-            .font(.system(size: 12))
+            .font(.callout)
             .foregroundStyle(.secondary)
             .padding(.top, 3)
 
@@ -45,7 +45,7 @@ struct ConnectionCard: View {
             HStack(spacing: 6) {
                 ProviderBadge(provider: connection.provider)
                 Text(locationLabel)
-                    .font(.system(size: 11))
+                    .font(.subheadline)
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -53,7 +53,7 @@ struct ConnectionCard: View {
                     .help(connection.hostDescription)
                 Spacer(minLength: 4)
                 Text(lastOpenedLabel)
-                    .font(.system(size: 11))
+                    .font(.subheadline)
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
                     .fixedSize()
@@ -85,7 +85,7 @@ struct ConnectionCard: View {
                 menuContent
             } label: {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.callout.weight(.bold))
                     .foregroundStyle(.secondary)
                     .frame(width: 28, height: 28)
                     .glassEffect(.regular.interactive(), in: Circle())
@@ -151,7 +151,7 @@ struct ProviderBadge: View {
             .foregroundStyle(.secondary)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(.quaternary.opacity(0.7), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+            .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 4, style: .continuous))
             .fixedSize()
     }
 }
@@ -175,7 +175,7 @@ struct AddConnectionCard: View {
                 Text("New Connection")
                     .font(.system(size: 14, weight: .semibold))
                 Text("Cloudflare R2 or any S3‑compatible service")
-                    .font(.system(size: 11))
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
         }

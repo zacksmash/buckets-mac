@@ -89,7 +89,7 @@ private struct FeatureRow: View {
                 Text(title)
                     .font(.system(size: 14, weight: .semibold))
                 Text(detail)
-                    .font(.system(size: 13))
+                    .font(.body)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

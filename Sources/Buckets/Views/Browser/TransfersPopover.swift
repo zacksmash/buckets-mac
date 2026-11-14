@@ -55,7 +55,7 @@ struct TransfersPopover: View {
         VStack(spacing: 0) {
             HStack {
                 Text("Transfers")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.body.weight(.semibold))
                 Spacer()
                 Button("Clear") { withAnimation(.snappy) { transfers.clearFinished() } }
                     .buttonStyle(.borderless)
@@ -72,10 +72,10 @@ struct TransfersPopover: View {
                         .font(.system(size: 32, weight: .light))
                         .foregroundStyle(.tertiary)
                     Text("No Transfers")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.body.weight(.medium))
                         .foregroundStyle(.secondary)
                     Text("Uploads and downloads appear here.")
-                        .font(.system(size: 11))
+                        .font(.subheadline)
                         .foregroundStyle(.tertiary)
                 }
                 .frame(maxWidth: .infinity)
@@ -120,7 +120,7 @@ private struct TransferRow: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(transfer.name)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.callout.weight(.medium))
                     .lineLimit(1)
                     .truncationMode(.middle)
 
@@ -132,7 +132,7 @@ private struct TransferRow: View {
                 }
 
                 Text(statusText)
-                    .font(.system(size: 11))
+                    .font(.subheadline)
                     .foregroundStyle(isFailed ? AnyShapeStyle(Color.red) : AnyShapeStyle(.secondary))
                     .lineLimit(2)
                     .monospacedDigit()

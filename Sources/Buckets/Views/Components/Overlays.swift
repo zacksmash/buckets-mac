@@ -17,7 +17,7 @@ struct DropOverlay: View {
                     .symbolRenderingMode(.palette)
                     .foregroundStyle(.white, Color.accentColor)
                 Text("Drop to upload to “\(folderName)”")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.body.weight(.semibold))
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
@@ -38,7 +38,7 @@ struct BusyCapsule: View {
             ProgressView()
                 .controlSize(.small)
             Text(message)
-                .font(.system(size: 12, weight: .medium))
+                .font(.callout.weight(.medium))
                 .lineLimit(1)
         }
         .padding(.horizontal, 14)
@@ -91,7 +91,7 @@ struct EmptyFolderView: View {
                 .font(.system(size: 20, weight: .semibold))
 
             Text("Drag files or folders here from the Finder to upload them, or create a new folder.")
-                .font(.system(size: 13))
+                .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 320)
@@ -133,14 +133,14 @@ struct InfoRow: View {
                 .lineLimit(1)
                 .frame(width: Self.labelWidth, alignment: .trailing)
             Text(value)
-                .font(monospaced ? .system(size: 11, design: .monospaced) : .system(size: 12))
+                .font(monospaced ? .subheadline.monospaced() : .callout)
                 .textSelection(.enabled)
                 .lineLimit(compact ? 1 : 4)
                 .truncationMode(.middle)
                 .help(compact ? value : "")
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .font(.system(size: 12))
+        .font(.callout)
     }
 }
 

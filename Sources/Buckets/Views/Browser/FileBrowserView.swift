@@ -94,7 +94,7 @@ struct FileBrowserView: View {
                 ProgressView()
                     .controlSize(.regular)
                 Text("Loading…")
-                    .font(.system(size: 12))
+                    .font(.callout)
                     .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

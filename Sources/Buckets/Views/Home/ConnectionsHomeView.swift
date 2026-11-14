@@ -150,7 +150,7 @@ struct ConnectionsHomeView: View {
                 Text("Connections")
                     .font(.system(size: 28, weight: .bold))
                 Text(subtitle)
-                    .font(.system(size: 13))
+                    .font(.body)
                     .foregroundStyle(.secondary)
             }
             Spacer()

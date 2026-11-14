@@ -37,7 +37,7 @@ struct PathBar: View {
             }
 
             Text(model.summaryText)
-                .font(.system(size: 11))
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
                 .lineLimit(1)
@@ -69,7 +69,7 @@ private struct PathBarSegment: View {
                         .frame(width: 15, height: 15)
                 }
                 Text(crumb.name)
-                    .font(.system(size: 11, weight: isCurrent ? .semibold : .regular))
+                    .font(.subheadline.weight(isCurrent ? .semibold : .regular))
                     .foregroundStyle(isCurrent ? .primary : .secondary)
                     .lineLimit(1)
             }

@@ -98,7 +98,7 @@ private struct FileTile: View {
                 .scaleEffect(isTargeted ? 1.08 : 1)
 
             Text(item.name)
-                .font(.system(size: 12))
+                .font(.callout)
                 .lineLimit(2)
                 .truncationMode(.middle)
                 .multilineTextAlignment(.center)

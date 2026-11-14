@@ -81,7 +81,7 @@ struct ConnectionEditorView: View {
 
                     LabeledContent("Endpoint URL") {
                         Text(draft.endpointURL?.absoluteString ?? "—")
-                            .font(.system(size: 11, design: .monospaced))
+                            .font(.subheadline.monospaced())
                             .foregroundStyle(.secondary)
                             .textSelection(.enabled)
                             .lineLimit(1)
@@ -286,7 +286,7 @@ struct ConnectionEditorView: View {
         case .idle:
             if let saveError {
                 Label(saveError, systemImage: "exclamationmark.triangle.fill")
-                    .font(.system(size: 11))
+                    .font(.subheadline)
                     .foregroundStyle(.red)
                     .lineLimit(2)
             }
@@ -294,7 +294,7 @@ struct ConnectionEditorView: View {
             HStack(spacing: 6) {
                 ProgressView().controlSize(.small)
                 Text("Connecting…")
-                    .font(.system(size: 12))
+                    .font(.callout)
                     .foregroundStyle(.secondary)
             }
         case let .success(message):
@@ -303,7 +303,7 @@ struct ConnectionEditorView: View {
             } icon: {
                 Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
             }
-            .font(.system(size: 12))
+            .font(.callout)
             .lineLimit(1)
             .transition(.opacity.combined(with: .scale(scale: 0.9)))
         case let .failure(message):
@@ -312,7 +312,7 @@ struct ConnectionEditorView: View {
             } icon: {
                 Image(systemName: "xmark.octagon.fill").foregroundStyle(.red)
             }
-            .font(.system(size: 11))
+            .font(.subheadline)
             .lineLimit(2)
             .help(message)
             .transition(.opacity.combined(with: .scale(scale: 0.9)))

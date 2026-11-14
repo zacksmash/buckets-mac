@@ -48,28 +48,28 @@ struct TextEditorSheet: View {
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 6) {
                     Text(document.item.name)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.body.weight(.semibold))
                     if isDirty {
                         Text("Edited")
-                            .font(.system(size: 11))
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .transition(.opacity)
                     } else if justSaved {
                         Label("Saved", systemImage: "checkmark.circle.fill")
-                            .font(.system(size: 11))
+                            .font(.subheadline)
                             .foregroundStyle(.green)
                             .transition(.opacity)
                     }
                 }
                 Text("\(model.connection.bucket)/\(document.item.key)")
-                    .font(.system(size: 11))
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
             }
             Spacer()
             Text(stats)
-                .font(.system(size: 11))
+                .font(.subheadline)
                 .foregroundStyle(.tertiary)
                 .monospacedDigit()
         }
@@ -83,12 +83,12 @@ struct TextEditorSheet: View {
         HStack(spacing: 10) {
             if let saveError {
                 Label(saveError, systemImage: "exclamationmark.triangle.fill")
-                    .font(.system(size: 11))
+                    .font(.subheadline)
                     .foregroundStyle(.red)
                     .lineLimit(2)
             } else {
                 Text(document.contentType)
-                    .font(.system(size: 11, design: .monospaced))
+                    .font(.subheadline.monospaced())
                     .foregroundStyle(.tertiary)
             }
             Spacer()

@@ -48,7 +48,7 @@ private struct ItemInspector: View {
                     .textSelection(.enabled)
                     .lineLimit(3)
                 Text(headline)
-                    .font(.system(size: 12))
+                    .font(.callout)
                     .foregroundStyle(.secondary)
             }
 
@@ -230,7 +230,7 @@ private struct MultipleSelectionInspector: View {
                 Text("\(items.count) Items")
                     .font(.system(size: 15, weight: .semibold))
                 Text(summary)
-                    .font(.system(size: 12))
+                    .font(.callout)
                     .foregroundStyle(.secondary)
             }
 
@@ -284,7 +284,7 @@ private struct FolderOverviewInspector: View {
                 Text(model.currentFolderName)
                     .font(.system(size: 15, weight: .semibold))
                 Text(model.summaryText)
-                    .font(.system(size: 12))
+                    .font(.callout)
                     .foregroundStyle(.secondary)
             }
 
@@ -320,7 +320,7 @@ private struct InspectorSection<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .textCase(.uppercase)
             content

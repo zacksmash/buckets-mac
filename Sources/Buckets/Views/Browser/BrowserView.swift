@@ -71,13 +71,13 @@ struct SidebarView: View {
             HStack(spacing: 2) {
                 Button(action: onHome) {
                     Label("All Connections", systemImage: "square.grid.2x2")
-                        .font(.system(size: 12))
+                        .font(.callout)
                 }
                 .help("Show All Connections (⇧⌘0)")
                 Spacer()
                 Button(action: onAdd) {
                     Image(systemName: "plus")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.body.weight(.medium))
                         .frame(width: 22, height: 22)
                 }
                 .help("New Connection (⌘N)")
