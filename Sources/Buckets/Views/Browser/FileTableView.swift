@@ -45,10 +45,9 @@ struct FileTableView: View {
             .width(min: 80, ideal: 150, max: 200)
         } rows: {
             ForEach(model.displayedItems) { item in
+                // No row-level drop: it makes the table claim Finder drags and then refuse them.
+                // Files dropped on the list go to the browser's own drop target (the current folder).
                 TableRow(item)
-                    .dropDestination(for: URL.self) { urls in
-                        model.upload(urls, into: item.isFolder ? item.key : model.prefix)
-                    }
             }
         }
         .tableStyle(.inset(alternatesRowBackgrounds: false))
