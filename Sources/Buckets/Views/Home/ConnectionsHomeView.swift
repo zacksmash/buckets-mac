@@ -25,6 +25,7 @@ struct ConnectionsHomeView: View {
     @State private var editorTarget: ConnectionEditorTarget?
     @State private var pendingDeletion: Connection?
     @State private var searchText = ""
+    @State private var duplicateError: String?
 
     private var filteredConnections: [Connection] {
         let query = searchText.trimmed
@@ -84,6 +85,17 @@ struct ConnectionsHomeView: View {
         } message: { _ in
             Text("The connection and its saved secret key will be removed from this Mac. Files in the bucket aren't affected.")
         }
+        .alert(
+            "Couldn't Duplicate Connection",
+            isPresented: Binding(
+                get: { duplicateError != nil },
+                set: { if !$0 { duplicateError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(duplicateError ?? "")
+        }
     }
 
     private var gallery: some View {
@@ -105,7 +117,13 @@ struct ConnectionsHomeView: View {
                                 onOpen: { onOpen(connection) },
                                 onOpenInNewWindow: { openWindow(id: "connection", value: connection.id) },
                                 onEdit: { editorTarget = .edit(connection) },
-                                onDuplicate: { withAnimation(.snappy) { _ = store.duplicate(connection) } },
+                                onDuplicate: {
+                                    do {
+                                        try withAnimation(.snappy) { _ = try store.duplicate(connection) }
+                                    } catch {
+                                        duplicateError = error.localizedDescription
+                                    }
+                                },
                                 onDelete: { pendingDeletion = connection }
                             )
                             .transition(.scale(scale: 0.92).combined(with: .opacity))

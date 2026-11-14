@@ -42,7 +42,7 @@ final class ConnectionStore {
     }
 
     @discardableResult
-    func duplicate(_ connection: Connection) -> Connection {
+    func duplicate(_ connection: Connection) throws -> Connection {
         var copy = connection
         copy.id = UUID()
         copy.name = connection.displayName + " Copy"
@@ -50,7 +50,7 @@ final class ConnectionStore {
         copy.lastOpenedAt = nil
         copy.revision = 0
         if let secret = Keychain.secret(for: connection.id) {
-            try? Keychain.setSecret(secret, for: copy.id)
+            try Keychain.setSecret(secret, for: copy.id)
         }
         if let index = connections.firstIndex(where: { $0.id == connection.id }) {
             connections.insert(copy, at: index + 1)

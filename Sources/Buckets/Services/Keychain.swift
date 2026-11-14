@@ -1,5 +1,6 @@
 import Foundation
 import Security
+import os
 
 /// Stores each connection's secret access key in the user's login keychain.
 enum Keychain {
@@ -48,7 +49,11 @@ enum Keychain {
             kSecAttrService as String: service,
             kSecAttrAccount as String: id.uuidString,
         ]
-        SecItemDelete(query as CFDictionary)
+        let status = SecItemDelete(query as CFDictionary)
+        if status != errSecSuccess, status != errSecItemNotFound {
+            Logger(subsystem: "com.maxconnect.Buckets", category: "Keychain")
+                .error("Couldn't delete a secret from the Keychain (status \(status, privacy: .public))")
+        }
     }
 }
 
